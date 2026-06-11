@@ -69,10 +69,12 @@
   .map-link{display:inline-block;font-size:12.5px;font-weight:700;color:var(--ink);text-decoration:none;
     border:1.5px solid var(--ink);border-radius:8px;padding:6px 10px}
   .map-link:hover{background:var(--ink);color:#fff}
+  .map-link.naver{border-color:#03c75a;background:#03c75a;color:#fff}
+  .map-link.naver:hover{background:#02b350;border-color:#02b350;color:#fff}
   .map-link.kakao{border-color:#f7c600;background:#fee500;color:#191919}
   .map-link.kakao:hover{background:#f7c600}
-  .map-link.tmap{border-color:#e2287d;color:#e2287d}
-  .map-link.tmap:hover{background:#e2287d;color:#fff}
+  .map-link.google{border-color:#dadce0;background:#fff;color:#3c4043}
+  .map-link.google:hover{background:#f8f9fa;box-shadow:0 1px 3px rgba(60,64,67,.2)}
 
   .empty{text-align:center;padding:60px 0;color:var(--sub)}
 
@@ -298,17 +300,15 @@ if(typeof EXTRA!=="undefined")PLACES.push(...EXTRA);
 const state={region:"all",place:"all",age:"all",cost:"all",q:""};
 const grid=document.getElementById("grid"), count=document.getElementById("count"), empty=document.getElementById("empty");
 
-const IS_MOBILE=/Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 function shortName(name){return name.split("+")[0].trim();}
 function mapUrl(name){return "https://map.naver.com/p/search/"+encodeURIComponent(shortName(name));}
 // 좌표(x:경도, y:위도) 있으면 길안내 직링크, 없으면 검색 링크
 function kakaoUrl(p){
   const n=encodeURIComponent(shortName(p.n));
-  return p.y?`https://map.kakao.com/link/to/${n},${p.y},${p.x}`:`https://map.kakao.com/link/search/${n}`;
+  return p.y?`https://map.kakao.com/link/map/${n},${p.y},${p.x}`:`https://map.kakao.com/link/search/${n}`;
 }
-function tmapUrl(p){
-  const n=encodeURIComponent(shortName(p.n));
-  return p.y?`tmap://route?goalname=${n}&goalx=${p.x}&goaly=${p.y}`:`tmap://search?name=${n}`;
+function googleUrl(p){
+  return p.y?`https://www.google.com/maps/dir/?api=1&destination=${p.y},${p.x}`:`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(shortName(p.n))}`;
 }
 
 function filtered(){
@@ -341,9 +341,9 @@ function render(){
         ${x.t.map(t=>`<span class="tag">#${t}</span>`).join("")}
       </div>
       <div class="map-row">
-        <a class="map-link" href="${mapUrl(x.n)}" target="_blank" rel="noopener">🗺️ 네이버 지도</a>
-        <a class="map-link kakao" href="${kakaoUrl(x)}" target="_blank" rel="noopener">${x.y?"카카오 길안내":"카카오맵"}</a>
-        ${IS_MOBILE?`<a class="map-link tmap" href="${tmapUrl(x)}">${x.y?"T맵 길안내":"T맵"}</a>`:""}
+        <a class="map-link naver" href="${mapUrl(x.n)}" target="_blank" rel="noopener">네이버 지도</a>
+        <a class="map-link kakao" href="${kakaoUrl(x)}" target="_blank" rel="noopener">카카오 지도</a>
+        <a class="map-link google" href="${googleUrl(x)}" target="_blank" rel="noopener"><span style="color:#4285F4">G</span><span style="color:#EA4335">o</span><span style="color:#FBBC05">o</span><span style="color:#4285F4">g</span><span style="color:#34A853">l</span><span style="color:#EA4335">e</span> 지도</a>
       </div>
     </div>`).join("");
 }
