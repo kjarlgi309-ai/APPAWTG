@@ -23,10 +23,7 @@
   body{font-family:'Pretendard',-apple-system,'Apple SD Gothic Neo','Noto Sans KR',sans-serif;background:var(--bg);color:var(--ink);line-height:1.5}
   .wrap{max-width:760px;margin:0 auto;padding:0 16px 80px}
 
-  header{padding:36px 0 8px;text-align:center;position:relative}
-  .lang-btn{position:absolute;top:10px;right:0;padding:6px 14px;border-radius:99px;border:1.5px solid var(--line);
-    background:#fff;font-size:12px;font-weight:800;color:var(--ink);cursor:pointer}
-  .lang-btn:hover{border-color:var(--accent);color:var(--accent)}
+  header{padding:36px 0 8px;text-align:center}
   .logo{font-size:15px;font-weight:800;color:var(--accent);letter-spacing:-.3px}
   h1{font-size:clamp(26px,6vw,38px);font-weight:800;letter-spacing:-1px;margin:10px 0 6px}
   h1 em{font-style:normal;color:var(--accent)}
@@ -102,7 +99,6 @@
 <body>
 <div class="wrap">
   <header>
-    <button class="lang-btn" id="langBtn" onclick="toggleLang()">EN</button>
     <h1>아빠, <em>이번 주말</em> 어디가?</h1>
     <p class="tagline">고민은 3초면 충분해요. 조건만 고르세요.</p>
     <button class="random-btn" onclick="randomPick()">🎲 고민 끝! 랜덤으로 정해줘</button>
@@ -289,55 +285,7 @@ if(typeof EXTRA!=="undefined")PLACES.push(...EXTRA);
 const state={region:"all",place:"all",age:"all",cost:"all",q:""};
 const grid=document.getElementById("grid"), count=document.getElementById("count"), empty=document.getElementById("empty");
 
-// ===== 다국어 (KO/EN) =====
-let lang="ko";try{lang=localStorage.getItem("appawtg_lang")||"ko";}catch(e){}
-const UI={
- h1:['아빠, <em>이번 주말</em> 어디가?','Dad, where are we going <em>this weekend</em>?'],
- tagline:['고민은 3초면 충분해요. 조건만 고르세요.','Pick a few filters — decided in 3 seconds.'],
- random:['🎲 고민 끝! 랜덤으로 정해줘','🎲 Just decide for me!'],
- search:['🔍 장소 이름이나 키워드 검색 (예: 공룡, 물놀이, 기차)','🔍 Search places or keywords (e.g. dinosaur, train)'],
- empty:['조건에 맞는 곳이 없어요 😢<br>필터를 조금 풀어보세요.','No matches 😢<br>Try loosening the filters.'],
- wtitle:['📅 다가오는 주말 날씨','📅 This weekend\'s weather'],
- again:['🎲 다시!','🎲 Again!'],map:['지도 보기','Map'],
- maplink:['네이버 지도에서 보기 →','Open in Google Maps →'],
- footer:['입장료·운영시간은 변동될 수 있어요. 방문 전 공식 정보를 꼭 확인하세요.','Hours and fees may change — please check official info before visiting.'],
- count:[n=>`${n}곳을 찾았어요`,n=>`Found ${n} places`]
-};
-const LBL={region:['지역','Region'],place:['장소','Place'],age:['나이','Age'],cost:['예산','Budget']};
-const CHIP={all:['전체','All'],"수도권":['수도권','Seoul Metro'],"강원":['강원','Gangwon'],"충청":['충청','Chungcheong'],"경상":['경상','Gyeongsang'],"전라":['전라','Jeolla'],"제주":['제주','Jeju'],
- "실내":['☔ 실내 (비와도 OK)','☔ Indoor (rain-proof)'],"실외":['☀️ 실외','☀️ Outdoor'],
- "유아":['유아 (0~6세)','Toddler (0–6)'],"초등":['초등학생','Elementary'],
- "무료":['무료','Free'],"가성비":['가성비 (1만원↓)','Budget (<₩10k)'],"플렉스":['플렉스','Splurge']};
-const TAG_EN={"과학":"science","체험":"hands-on","동물":"animals","자연":"nature","역사":"history","테마파크":"theme park","아쿠아리움":"aquarium","숲":"forest","공룡":"dinosaurs","피크닉":"picnic","액티비티":"activity","바다":"sea","섬":"island","기차":"train","로봇":"robots","직업":"jobs","식물":"plants","비행기":"planes","동굴":"cave","물놀이":"water play","먹거리":"food","벽화":"murals","이색마을":"unique village","미술":"art","게임":"games","곤충":"bugs","문화":"culture","썰매":"sled","캠핑":"camping","갯벌":"mudflat","놀이터":"playground","박물관":"museum","전망":"views","야경":"night lights"};
-const SIDO_EN={"서울":"Seoul","경기":"Gyeonggi","인천":"Incheon","강원":"Gangwon","충북":"Chungbuk","충남":"Chungnam","대전":"Daejeon","세종":"Sejong","부산":"Busan","대구":"Daegu","울산":"Ulsan","경북":"Gyeongbuk","경남":"Gyeongnam","전북":"Jeonbuk","전남":"Jeonnam","광주":"Gwangju","제주":"Jeju"};
-const CITY_EN={"서울 기준":"Seoul area","춘천 기준":"Chuncheon area","대전 기준":"Daejeon area","부산 기준":"Busan area","광주 기준":"Gwangju area","제주시 기준":"Jeju area"};
-function locTxt(l){if(lang==="ko")return l;const p=l.split(" ");return (SIDO_EN[p[0]]||p[0])+(p[1]?" "+p[1]:"");}
-function toggleLang(){lang=lang==="ko"?"en":"ko";try{localStorage.setItem("appawtg_lang",lang);}catch(e){}applyLang();}
-function applyLang(){
-  const i=lang==="ko"?0:1;
-  document.documentElement.lang=lang;
-  document.getElementById("langBtn").textContent=lang==="ko"?"EN":"한국어";
-  document.querySelector("h1").innerHTML=UI.h1[i];
-  document.querySelector(".tagline").textContent=UI.tagline[i];
-  document.querySelector(".random-btn").textContent=UI.random[i];
-  document.getElementById("q").placeholder=UI.search[i];
-  document.getElementById("empty").innerHTML=UI.empty[i];
-  document.getElementById("wTitle").textContent=UI.wtitle[i];
-  document.querySelector(".btn-again").textContent=UI.again[i];
-  document.getElementById("mMap").textContent=UI.map[i];
-  document.querySelector("footer p").textContent=UI.footer[i];
-  document.querySelectorAll(".frow").forEach(row=>{
-    row.querySelector(".flabel").textContent=LBL[row.dataset.key][i];
-    row.querySelectorAll(".chip").forEach(c=>{const m=CHIP[c.dataset.v];if(m)c.textContent=m[i];});
-  });
-  render();
-  loadWeather();
-}
-
-function mapUrl(name){
-  const q=encodeURIComponent(name.split("+")[0].trim());
-  return lang==="ko"?"https://map.naver.com/p/search/"+q:"https://www.google.com/maps/search/?api=1&query="+q;
-}
+function mapUrl(name){return "https://map.naver.com/p/search/"+encodeURIComponent(name.split("+")[0].trim());}
 
 function filtered(){
   return PLACES.filter(x=>{
@@ -354,22 +302,21 @@ function filtered(){
 }
 
 function render(){
-  const i=lang==="ko"?0:1;
   const list=filtered();
-  count.textContent=UI.count[i](list.length);
+  count.textContent=`${list.length}곳을 찾았어요`;
   empty.style.display=list.length?"none":"block";
   grid.innerHTML=list.map(x=>`
     <div class="card">
       <div class="emoji">${x.e}</div>
       <h3>${x.n}</h3>
-      <div class="loc">📍 ${locTxt(x.l)}</div>
+      <div class="loc">📍 ${x.l}</div>
       <p>${x.d}</p>
       <div class="tags">
-        <span class="tag ${x.c==='무료'?'free':''}">${lang==="ko"?(x.c==='무료'?'💸 무료':x.c==='가성비'?'💰 1만원↓':'💳 플렉스'):(x.c==='무료'?'💸 Free':x.c==='가성비'?'💰 <₩10k':'💳 Splurge')}</span>
-        <span class="tag">${lang==="ko"?(x.p==='실내'?'☔ 실내':x.p==='실외'?'☀️ 실외':'⛅ 실내+실외'):(x.p==='실내'?'☔ Indoor':x.p==='실외'?'☀️ Outdoor':'⛅ In+Outdoor')}</span>
-        ${x.t.map(t=>`<span class="tag">#${lang==="ko"?t:(TAG_EN[t]||t)}</span>`).join("")}
+        <span class="tag ${x.c==='무료'?'free':''}">${x.c==='무료'?'💸 무료':x.c==='가성비'?'💰 1만원↓':'💳 플렉스'}</span>
+        <span class="tag">${x.p==='실내'?'☔ 실내':x.p==='실외'?'☀️ 실외':'⛅ 실내+실외'}</span>
+        ${x.t.map(t=>`<span class="tag">#${t}</span>`).join("")}
       </div>
-      <a class="map-link" href="${mapUrl(x.n)}" target="_blank" rel="noopener">${UI.maplink[i]}</a>
+      <a class="map-link" href="${mapUrl(x.n)}" target="_blank" rel="noopener">네이버 지도에서 보기 →</a>
     </div>`).join("");
 }
 
@@ -407,18 +354,17 @@ const REGION_GEO={
   "제주":["제주시 기준",33.50,126.53]
 };
 const DOW=["일","월","화","수","목","금","토"];
-const DOW_EN=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
 function wmo(c){
-  if(c===0)return["☀️","맑음","Sunny"];
-  if(c<=2)return["🌤️","구름 조금","Partly cloudy"];
-  if(c===3)return["☁️","흐림","Cloudy"];
-  if(c<=48)return["🌫️","안개","Foggy"];
-  if(c<=57)return["🌦️","이슬비","Drizzle"];
-  if(c<=67)return["🌧️","비","Rain"];
-  if(c<=77)return["🌨️","눈","Snow"];
-  if(c<=82)return["🌦️","소나기","Showers"];
-  if(c<=86)return["🌨️","눈","Snow"];
-  return["⛈️","뇌우","Thunderstorm"];
+  if(c===0)return["☀️","맑음"];
+  if(c<=2)return["🌤️","구름 조금"];
+  if(c===3)return["☁️","흐림"];
+  if(c<=48)return["🌫️","안개"];
+  if(c<=57)return["🌦️","이슬비"];
+  if(c<=67)return["🌧️","비"];
+  if(c<=77)return["🌨️","눈"];
+  if(c<=82)return["🌦️","소나기"];
+  if(c<=86)return["🌨️","눈"];
+  return["⛈️","뇌우"];
 }
 const wCache={};
 async function loadWeather(){
@@ -436,15 +382,15 @@ async function loadWeather(){
       const dow=new Date(d.time[i]+"T00:00:00").getDay();
       if(dow===6||dow===0)days.push(i);
     }
-    document.getElementById("wCity").textContent=lang==="ko"?label:(CITY_EN[label]||label);
+    document.getElementById("wCity").textContent=label;
     document.getElementById("wDays").innerHTML=days.map(i=>{
       const dt=new Date(d.time[i]+"T00:00:00"),dw=dt.getDay();
-      const w=wmo(d.weather_code[i]),icon=w[0],txt=lang==="ko"?w[1]:w[2];
+      const [icon,txt]=wmo(d.weather_code[i]);
       return `<div class="w-day">
-        <div class="d ${dw===6?'sat':'sun'}">${dt.getMonth()+1}/${dt.getDate()} (${(lang==="ko"?DOW:DOW_EN)[dw]})</div>
+        <div class="d ${dw===6?'sat':'sun'}">${dt.getMonth()+1}/${dt.getDate()} (${DOW[dw]})</div>
         <div class="i">${icon}</div>
         <div class="t">${Math.round(d.temperature_2m_max[i])}° <small>/ ${Math.round(d.temperature_2m_min[i])}°</small></div>
-        <div class="r">${txt} · ${lang==="ko"?"강수":"Rain"} ${d.precipitation_probability_max[i]}%</div>
+        <div class="r">${txt} · 강수 ${d.precipitation_probability_max[i]}%</div>
       </div>`;
     }).join("");
     // 한 줄 팁
@@ -453,16 +399,14 @@ async function loadWeather(){
     const cold=days.some(i=>d.temperature_2m_min[i]<=0);
     const tip=document.getElementById("wTip");
     if(rainy.length){
-      const names=rainy.map(i=>{const dd=new Date(d.time[i]+"T00:00:00").getDay();return lang==="ko"?DOW[dd]+"요일":DOW_EN[dd];}).join("·");
-      tip.innerHTML=lang==="ko"
-        ?`☔ ${names}에 비 소식이 있어요. 실내 위주로 짜볼까요? <button onclick="applyIndoor()">실내만 보기</button>`
-        :`☔ Rain expected on ${names}. Plan indoors? <button onclick="applyIndoor()">Indoor only</button>`;
+      const names=rainy.map(i=>DOW[new Date(d.time[i]+"T00:00:00").getDay()]+"요일").join("·");
+      tip.innerHTML=`☔ ${names}에 비 소식이 있어요. 실내 위주로 짜볼까요? <button onclick="applyIndoor()">실내만 보기</button>`;
     }else if(hot){
-      tip.textContent=lang==="ko"?"🥵 한낮이 더워요. 물놀이나 시원한 실내, 또는 오전 일찍 움직이는 걸 추천!":"🥵 Hot afternoons — water play, cool indoor spots, or head out early.";
+      tip.textContent="🥵 한낮이 더워요. 물놀이나 시원한 실내, 또는 오전 일찍 움직이는 걸 추천!";
     }else if(cold){
-      tip.textContent=lang==="ko"?"🧤 쌀쌀해요. 장갑·핫팩 챙기고 실내 코스를 섞어보세요.":"🧤 Chilly — pack gloves and mix in indoor stops.";
+      tip.textContent="🧤 쌀쌀해요. 장갑·핫팩 챙기고 실내 코스를 섞어보세요.";
     }else{
-      tip.textContent=lang==="ko"?"🙆 나들이 가기 좋은 날씨예요. 실외 명소를 노려보세요!":"🙆 Great weather for an outing — hit the outdoor spots!";
+      tip.textContent="🙆 나들이 가기 좋은 날씨예요. 실외 명소를 노려보세요!";
     }
     document.getElementById("weather").style.display="block";
   }catch(e){/* 오프라인 등 실패 시 위젯 숨김 유지 */}
@@ -475,7 +419,8 @@ function applyIndoor(){
   document.getElementById("grid").scrollIntoView({behavior:"smooth"});
 }
 
-applyLang(); // 내부에서 render() + loadWeather() 호출
+render();
+loadWeather();
 </script>
 </body>
 </html>
