@@ -13,6 +13,14 @@
 <link rel="canonical" href="https://appawtg.com/">
 <meta name="keywords" content="주말 나들이, 아이와 가볼만한 곳, 가족 여행, 주말 어디가, 아이랑, 실내 놀거리">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🚗</text></svg>">
+<!-- Google Analytics (GA4) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-GQMT54C855"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-GQMT54C855');
+</script>
 <style>
   :root{
     --bg:#faf8f5; --card:#ffffff; --ink:#2b2620; --sub:#8a8178;
@@ -335,6 +343,7 @@ document.getElementById("q").addEventListener("input",e=>{state.q=e.target.value
 
 // ===== 랜덤 추천 =====
 function randomPick(){
+  if(typeof gtag==="function")gtag('event','random_pick');
   const list=filtered().length?filtered():PLACES;
   const x=list[Math.floor(Math.random()*list.length)];
   document.getElementById("mEmoji").textContent=x.e;
