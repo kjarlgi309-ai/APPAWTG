@@ -52,7 +52,14 @@
   .search{width:100%;margin-top:8px;padding:11px 14px;border:1px solid var(--line);border-radius:12px;font-size:14px;background:#fff;outline:none}
   .search:focus{border-color:var(--accent)}
 
-  .count{font-size:13px;color:var(--sub);margin:14px 2px 10px}
+  .count-row{display:flex;align-items:center;justify-content:space-between;margin:14px 2px 10px}
+  .count{font-size:13px;color:var(--sub)}
+  .fav-filter{border:1.5px solid var(--line);background:#fff;border-radius:99px;padding:5px 12px;font-size:12px;font-weight:700;color:#5d564e;cursor:pointer}
+  .fav-filter.on{background:#e0245e;border-color:#e0245e;color:#fff}
+  .fav-btn{position:absolute;top:12px;right:12px;border:none;background:none;font-size:20px;cursor:pointer;line-height:1;padding:4px}
+  .near-banner{display:none;margin:0 0 10px;padding:9px 12px;background:var(--accent-soft);border-radius:10px;font-size:13px;font-weight:600;color:#6b5a4e}
+  .near-banner button{float:right;border:none;background:none;font-weight:800;cursor:pointer;color:#d4541a;font-size:13px}
+  .map-link.near{border-style:dashed;background:none;cursor:pointer;font-family:inherit}
   .grid{display:grid;grid-template-columns:1fr;gap:12px}
   @media(min-width:560px){.grid{grid-template-columns:1fr 1fr}}
 
@@ -159,7 +166,11 @@
     <input class="search" id="q" placeholder="🔍 장소 이름이나 키워드 검색 (예: 공룡, 물놀이, 기차)">
   </div>
 
-  <div class="count" id="count"></div>
+  <div class="count-row">
+    <div class="count" id="count"></div>
+    <button class="fav-filter" id="favToggle" onclick="toggleFavOnly()">❤️ 찜만 보기</button>
+  </div>
+  <div class="near-banner" id="nearBanner"></div>
   <div class="grid" id="grid"></div>
   <div class="empty" id="empty" style="display:none">조건에 맞는 곳이 없어요 😢<br>필터를 조금 풀어보세요.</div>
 
@@ -297,10 +308,47 @@ const PLACES = [
 ];
 // 외부 데이터 파일(places_extra.js)이 있으면 합치기
 if(typeof EXTRA!=="undefined")PLACES.push(...EXTRA);
+// 직접 큐레이션 장소에 좌표 적용 (places_extra.js의 BASE_COORDS)
+if(typeof BASE_COORDS!=="undefined")PLACES.forEach(p=>{const c=BASE_COORDS[p.n];if(c){p.x=c[0];p.y=c[1];}});
 
 // ===== 상태 & 렌더 =====
-const state={region:"all",place:"all",age:"all",cost:"all",q:""};
+const state={region:"all",place:"all",age:"all",cost:"all",q:"",favOnly:false,near:null};
 const grid=document.getElementById("grid"), count=document.getElementById("count"), empty=document.getElementById("empty");
+
+// ===== 찜하기 (브라우저에 저장) =====
+let FAVS=[];try{FAVS=JSON.parse(localStorage.getItem("appawtg_favs")||"[]");}catch(e){}
+function isFav(n){return FAVS.includes(n);}
+function toggleFav(n){
+  const i=FAVS.indexOf(n);
+  if(i<0){FAVS.push(n);if(typeof gtag==="function")gtag('event','fav_add');}
+  else FAVS.splice(i,1);
+  try{localStorage.setItem("appawtg_favs",JSON.stringify(FAVS));}catch(e){}
+  render();
+}
+function toggleFavOnly(){
+  state.favOnly=!state.favOnly;
+  document.getElementById("favToggle").classList.toggle("on",state.favOnly);
+  render();
+}
+
+// ===== 근처 장소 (좌표 기반, 반경 15km) =====
+function dist(a,b){const dx=(a.x-b.x)*88.8,dy=(a.y-b.y)*111.1;return Math.sqrt(dx*dx+dy*dy);}
+let NEAR_COUNT=null;
+function nearCount(p){
+  if(!NEAR_COUNT){
+    NEAR_COUNT={};const cs=PLACES.filter(q=>q.y);
+    cs.forEach(q=>{NEAR_COUNT[q.n]=cs.filter(o=>o!==q&&dist(q,o)<=15).length;});
+  }
+  return NEAR_COUNT[p.n]||0;
+}
+function showNear(n){
+  const p=PLACES.find(q=>q.n===n);if(!p||!p.y)return;
+  state.near=p;
+  if(typeof gtag==="function")gtag('event','nearby_view');
+  render();
+  document.getElementById("nearBanner").scrollIntoView({behavior:"smooth",block:"center"});
+}
+function clearNear(){state.near=null;render();}
 
 function shortName(name){return name.split("+")[0].trim();}
 function mapUrl(name){return "https://map.naver.com/p/search/"+encodeURIComponent(shortName(name));}
@@ -316,8 +364,16 @@ function foodUrl(p){
   return "https://map.naver.com/p/search/"+encodeURIComponent(shortName(p.n)+" 근처 맛집");
 }
 
+let LAST_DIST={};
 function filtered(){
+  if(state.near){ // 근처 모드: 다른 필터 무시, 거리순 정렬
+    LAST_DIST={};
+    return PLACES.filter(x=>x.y&&x.n!==state.near.n&&dist(x,state.near)<=15)
+      .map(x=>{LAST_DIST[x.n]=dist(x,state.near);return x;})
+      .sort((a,b)=>LAST_DIST[a.n]-LAST_DIST[b.n]);
+  }
   return PLACES.filter(x=>{
+    if(state.favOnly&&!isFav(x.n))return false;
     if(state.region!=="all"&&x.r!==state.region)return false;
     if(state.place!=="all"&&x.p!==state.place&&x.p!=="혼합")return false;
     if(state.age!=="all"&&!x.a.includes(state.age))return false;
@@ -334,11 +390,17 @@ function render(){
   const list=filtered();
   count.textContent=`${list.length}곳을 찾았어요`;
   empty.style.display=list.length?"none":"block";
+  const nb=document.getElementById("nearBanner");
+  if(state.near){
+    nb.style.display="block";
+    nb.innerHTML=`📍 <b>${shortName(state.near.n)}</b> 근처 15km · ${list.length}곳 (가까운 순) <button onclick="clearNear()">✕ 해제</button>`;
+  }else nb.style.display="none";
   grid.innerHTML=list.map(x=>`
     <div class="card">
+      <button class="fav-btn" data-n="${x.n}" title="찜하기">${isFav(x.n)?"❤️":"🤍"}</button>
       <div class="emoji">${x.e}</div>
       <h3>${x.n}</h3>
-      <div class="loc">📍 ${x.l}</div>
+      <div class="loc">📍 ${x.l}${state.near&&LAST_DIST[x.n]!==undefined?` · <b>${LAST_DIST[x.n].toFixed(1)}km</b>`:""}</div>
       <p>${x.d}</p>
       <div class="tags">
         <span class="tag ${x.c==='무료'?'free':''}">${x.c==='무료'?'💸 무료':x.c==='가성비'?'💰 1만원↓':'💳 플렉스'}</span>
@@ -350,9 +412,18 @@ function render(){
         <a class="map-link kakao" href="${kakaoUrl(x)}" target="_blank" rel="noopener">카카오 지도</a>
         <a class="map-link google" href="${googleUrl(x)}" target="_blank" rel="noopener"><span style="color:#4285F4">G</span><span style="color:#EA4335">o</span><span style="color:#FBBC05">o</span><span style="color:#4285F4">g</span><span style="color:#34A853">l</span><span style="color:#EA4335">e</span> 지도</a>
         <a class="map-link food" href="${foodUrl(x)}" target="_blank" rel="noopener">🍜 주변 맛집</a>
+        ${x.y&&!state.near?`<button class="map-link near near-btn" data-n="${x.n}">📍 근처 ${nearCount(x)}곳 더보기</button>`:""}
       </div>
     </div>`).join("");
 }
+
+// 카드 내 버튼 이벤트 (찜·근처보기)
+grid.addEventListener("click",e=>{
+  const f=e.target.closest(".fav-btn");
+  if(f){toggleFav(f.dataset.n);return;}
+  const nb=e.target.closest(".near-btn");
+  if(nb)showNear(nb.dataset.n);
+});
 
 // ===== 필터 이벤트 =====
 document.querySelectorAll(".frow").forEach(row=>{
