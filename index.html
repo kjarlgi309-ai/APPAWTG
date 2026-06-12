@@ -75,6 +75,8 @@
   .map-link.kakao:hover{background:#f7c600}
   .map-link.google{border-color:#dadce0;background:#fff;color:#3c4043}
   .map-link.google:hover{background:#f8f9fa;box-shadow:0 1px 3px rgba(60,64,67,.2)}
+  .map-link.food{border-color:var(--accent);background:var(--accent-soft);color:#d4541a}
+  .map-link.food:hover{background:var(--accent);border-color:var(--accent);color:#fff}
 
   .empty{text-align:center;padding:60px 0;color:var(--sub)}
 
@@ -310,6 +312,9 @@ function kakaoUrl(p){
 function googleUrl(p){
   return p.y?`https://www.google.com/maps/dir/?api=1&destination=${p.y},${p.x}`:`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(shortName(p.n))}`;
 }
+function foodUrl(p){
+  return "https://map.naver.com/p/search/"+encodeURIComponent(shortName(p.n)+" 근처 맛집");
+}
 
 function filtered(){
   return PLACES.filter(x=>{
@@ -344,6 +349,7 @@ function render(){
         <a class="map-link naver" href="${mapUrl(x.n)}" target="_blank" rel="noopener">네이버 지도</a>
         <a class="map-link kakao" href="${kakaoUrl(x)}" target="_blank" rel="noopener">카카오 지도</a>
         <a class="map-link google" href="${googleUrl(x)}" target="_blank" rel="noopener"><span style="color:#4285F4">G</span><span style="color:#EA4335">o</span><span style="color:#FBBC05">o</span><span style="color:#4285F4">g</span><span style="color:#34A853">l</span><span style="color:#EA4335">e</span> 지도</a>
+        <a class="map-link food" href="${foodUrl(x)}" target="_blank" rel="noopener">🍜 주변 맛집</a>
       </div>
     </div>`).join("");
 }
