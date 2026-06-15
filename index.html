@@ -548,12 +548,12 @@ function applyIndoor(){
   document.getElementById("grid").scrollIntoView({behavior:"smooth"});
 }
 
-// 첫 화면: 방문지역 랜덤 선택
+// 첫 화면: 지역은 '전체' 그대로, 방문지 순서만 랜덤(셔플)
 (function(){
-  const regions=["수도권","강원","충청","경상","전라","제주"];
-  state.region=regions[Math.floor(Math.random()*regions.length)];
-  const row=document.querySelector('.frow[data-key="region"]');
-  if(row) row.querySelectorAll(".chip").forEach(c=>c.classList.toggle("on", c.dataset.v===state.region));
+  for (let i = PLACES.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [PLACES[i], PLACES[j]] = [PLACES[j], PLACES[i]];
+  }
 })();
 render();
 loadWeather();
