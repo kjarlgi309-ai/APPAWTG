@@ -399,7 +399,7 @@ function render(){
     <div class="card">
       <button class="fav-btn" data-n="${x.n}" title="찜하기">${isFav(x.n)?"❤️":"🤍"}</button>
       <div class="emoji">${x.e}</div>
-      <h3>${x.n}</h3>
+      <h3 class="rv-open" data-n="${x.n}">${x.n} <span class="rv-sign">💬 한줄평</span></h3>
       <div class="loc">📍 ${x.l}${state.near&&LAST_DIST[x.n]!==undefined?` · <b>${LAST_DIST[x.n].toFixed(1)}km</b>`:""}</div>
       <p>${x.d}</p>
       <div class="tags">
@@ -528,5 +528,6 @@ function applyIndoor(){
 render();
 loadWeather();
 </script>
+<script src="reviews.js"></script>
 </body>
 </html>
