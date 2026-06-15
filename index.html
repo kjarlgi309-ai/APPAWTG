@@ -528,6 +528,356 @@ function applyIndoor(){
 render();
 loadWeather();
 </script>
-<script src="reviews.js"></script>
+<!-- 한줄평 기능 (reviews.js 인라인 통합 — 별도 파일 불필요) -->
+<script>
+/* ============================================================
+   APPAWTG 한줄평(리뷰) 모듈  —  reviews.js
+   ------------------------------------------------------------
+   · 장소명을 클릭하면 그 장소를 다녀온 사람들의 한줄평이 별도 창으로
+     뜨고, 새 한줄평을 남길 수 있습니다. (이름 옆 "💬 한줄평" 사인)
+   · 데이터는 Google Firebase(Firestore)에 저장됩니다. (무료)
+   · 서버 코드가 필요 없는 정적 사이트용 방식입니다.
+
+   ▶▶▶ 처음 설치할 때 할 일은 딱 하나:
+       아래 [1] firebaseConfig 안의 "여기에_..." 부분을
+       본인 Firebase 값으로 바꿔 넣으면 끝.
+       (방법은 같이 드린 '한줄평_설치가이드.md' 참고)
+   설정 전이라도 사이트는 그대로 잘 돌아갑니다.
+   ============================================================ */
+(function () {
+  "use strict";
+
+  // ===== [1] 여기만 본인 값으로 교체 ================================
+  const firebaseConfig = {
+    apiKey:            "여기에_API_KEY",
+    authDomain:        "여기에_PROJECT_ID.firebaseapp.com",
+    projectId:         "여기에_PROJECT_ID",
+    storageBucket:     "여기에_PROJECT_ID.appspot.com",
+    messagingSenderId: "여기에_SENDER_ID",
+    appId:             "여기에_APP_ID"
+  };
+  // ================================================================
+
+  // ===== [2] 손볼 일 거의 없는 설정값 ==============================
+  const HIDE_AT  = 3;       // 신고가 이 횟수 이상이면 자동으로 숨김
+  const MAX_LEN  = 80;      // 한줄평 최대 글자 수
+  const COOLDOWN = 20000;   // 연속 작성 방지 (밀리초, 20초)
+  const FETCH_N  = 100;     // 장소별로 불러올 한줄평 최대 개수
+  const BAD_WORDS = ["씨발", "시발", "병신", "ㅄ", "ㅂㅅ", "좆", "개새", "fuck", "shit"];
+  // ================================================================
+
+  const SDK_VER = "10.12.2";
+  const CONFIGURED = !/여기에/.test(firebaseConfig.apiKey);
+
+  let RV = null;
+  let initPromise = null;
+
+  function initFirebase() {
+    if (!CONFIGURED) return Promise.reject(new Error("NOT_CONFIGURED"));
+    if (initPromise) return initPromise;
+    initPromise = (async () => {
+      const [appMod, fs] = await Promise.all([
+        import(`https://www.gstatic.com/firebasejs/${SDK_VER}/firebase-app.js`),
+        import(`https://www.gstatic.com/firebasejs/${SDK_VER}/firebase-firestore.js`)
+      ]);
+      const app = appMod.initializeApp(firebaseConfig);
+      RV = { fs, db: fs.getFirestore(app) };
+      return RV;
+    })();
+    return initPromise;
+  }
+
+  // ===== 유틸 =====
+  function esc(s) {
+    return String(s == null ? "" : s)
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+  }
+  function timeAgo(ts) {
+    if (!ts || !ts.toDate) return "방금";
+    const sec = (Date.now() - ts.toDate().getTime()) / 1000;
+    if (sec < 60) return "방금";
+    if (sec < 3600) return Math.floor(sec / 60) + "분 전";
+    if (sec < 86400) return Math.floor(sec / 3600) + "시간 전";
+    if (sec < 86400 * 30) return Math.floor(sec / 86400) + "일 전";
+    const d = ts.toDate();
+    return (d.getMonth() + 1) + "/" + d.getDate();
+  }
+  function stars(n) {
+    n = Math.max(0, Math.min(5, n | 0));
+    return n ? "★".repeat(n) + "☆".repeat(5 - n) : "";
+  }
+  function lsGet(k, def) { try { return JSON.parse(localStorage.getItem(k)) ?? def; } catch (e) { return def; } }
+  function lsSet(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
+
+  // ===== 스타일 주입 =====
+  function injectCSS() {
+    const css = `
+    .card h3.rv-open{cursor:pointer;display:inline-flex;align-items:center;gap:12px;flex-wrap:wrap}
+    .card h3.rv-open:hover{color:#5b3fd1}
+    .card h3.rv-open:hover .rv-sign{background:#7c5cff;border-color:#7c5cff;color:#fff}
+    .rv-sign{font-size:9.5px;font-weight:700;letter-spacing:0;color:#7c6fb0;background:#f5f3ff;
+      border:1px solid #e7e2fb;border-radius:99px;padding:1px 7px;line-height:1.5;white-space:nowrap;transition:.15s}
+    .rv-bg{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:flex-end;justify-content:center;z-index:200;padding:0}
+    .rv-bg.show{display:flex}
+    @media(min-width:560px){.rv-bg{align-items:center;padding:20px}}
+    .rv-sheet{background:#fff;border-radius:20px 20px 0 0;width:100%;max-width:480px;max-height:88vh;display:flex;flex-direction:column;animation:rvUp .25s}
+    @media(min-width:560px){.rv-sheet{border-radius:20px}}
+    @keyframes rvUp{from{transform:translateY(30px);opacity:.4}to{transform:translateY(0);opacity:1}}
+    .rv-head{padding:18px 20px 12px;border-bottom:1px solid var(--line,#eee7de);display:flex;align-items:flex-start;gap:10px}
+    .rv-head h3{font-size:18px;font-weight:800;letter-spacing:-.4px;margin:0;flex:1}
+    .rv-head .sub{font-size:12.5px;color:var(--sub,#8a8178);margin-top:3px;font-weight:600}
+    .rv-x{border:none;background:none;font-size:22px;line-height:1;cursor:pointer;color:#9a9088;padding:2px 4px}
+    .rv-list{overflow-y:auto;padding:6px 20px;flex:1;min-height:80px}
+    .rv-item{padding:13px 0;border-bottom:1px solid #f3eee7}
+    .rv-item:last-child{border-bottom:none}
+    .rv-top{display:flex;align-items:center;gap:7px;margin-bottom:4px}
+    .rv-nick{font-weight:800;font-size:13.5px;color:#3a352e}
+    .rv-star{color:#ff9f1c;font-size:12.5px;letter-spacing:1px}
+    .rv-time{margin-left:auto;font-size:11.5px;color:#b3aaa0;font-weight:600}
+    .rv-text{font-size:14px;color:#4a443c;line-height:1.5;word-break:break-word}
+    .rv-report{border:none;background:none;color:#c9bfb4;font-size:11px;cursor:pointer;padding:4px 0 0;font-weight:600}
+    .rv-report:hover{color:#e0245e}
+    .rv-empty{text-align:center;color:var(--sub,#8a8178);font-size:13.5px;padding:30px 0}
+    .rv-form{border-top:1px solid var(--line,#eee7de);padding:14px 20px 18px;background:#faf8f5}
+    .rv-rate{display:flex;gap:3px;margin-bottom:8px;align-items:center}
+    .rv-rate .lab{font-size:12px;color:var(--sub,#8a8178);font-weight:700;margin-right:4px}
+    .rv-rate b{font-size:21px;cursor:pointer;color:#dcd5cc;line-height:1;transition:.1s}
+    .rv-rate b.on{color:#ff9f1c}
+    .rv-inputs{display:flex;gap:7px;margin-bottom:8px}
+    .rv-nickin{width:96px;flex:0 0 auto}
+    .rv-inputs input,.rv-textin{padding:10px 12px;border:1px solid var(--line,#eee7de);border-radius:10px;font-size:14px;background:#fff;outline:none;font-family:inherit}
+    .rv-inputs input:focus,.rv-textin:focus{border-color:#7c5cff}
+    .rv-textin{flex:1;min-width:0}
+    .rv-hp{position:absolute;left:-9999px;width:1px;height:1px;opacity:0}
+    .rv-send{width:100%;padding:13px;border:none;border-radius:11px;background:#7c5cff;color:#fff;font-size:15px;font-weight:800;cursor:pointer}
+    .rv-send:active{transform:scale(.98)}
+    .rv-send:disabled{opacity:.5;cursor:default}
+    .rv-msg{font-size:12.5px;margin-top:8px;text-align:center;font-weight:600;min-height:16px}
+    .rv-msg.err{color:#e0245e}.rv-msg.ok{color:#2e7d32}
+    .rv-note{font-size:12px;color:#8a8178;line-height:1.5;text-align:center;padding:20px}
+    .rv-note code{background:#f3eee7;padding:1px 5px;border-radius:4px;font-size:11px}
+    `;
+    const el = document.createElement("style");
+    el.textContent = css;
+    document.head.appendChild(el);
+  }
+
+  // ===== 모달 DOM =====
+  let elBg, elTitle, elSub, elList, elForm, elNick, elText, elHp, elSend, elMsg, elRate;
+  let curPlace = null, curRating = 0, loading = false;
+
+  function buildModal() {
+    elBg = document.createElement("div");
+    elBg.className = "rv-bg";
+    elBg.id = "rvBg";
+    elBg.innerHTML = `
+      <div class="rv-sheet" role="dialog" aria-modal="true">
+        <div class="rv-head">
+          <div style="flex:1">
+            <h3 id="rvTitle"></h3>
+            <div class="sub" id="rvSub"></div>
+          </div>
+          <button class="rv-x" id="rvX" aria-label="닫기">×</button>
+        </div>
+        <div class="rv-list" id="rvList"></div>
+        <div class="rv-form" id="rvForm">
+          <div class="rv-rate" id="rvRate">
+            <span class="lab">별점(선택)</span>
+            <b data-s="1">★</b><b data-s="2">★</b><b data-s="3">★</b><b data-s="4">★</b><b data-s="5">★</b>
+          </div>
+          <div class="rv-inputs">
+            <input class="rv-nickin" id="rvNick" maxlength="16" placeholder="닉네임(선택)">
+            <input class="rv-textin" id="rvText" maxlength="${MAX_LEN}" placeholder="다녀온 한줄평을 남겨주세요">
+          </div>
+          <input class="rv-hp" id="rvHp" tabindex="-1" autocomplete="off" aria-hidden="true" placeholder="비워두세요">
+          <button class="rv-send" id="rvSend">한줄평 남기기</button>
+          <div class="rv-msg" id="rvMsg"></div>
+        </div>
+      </div>`;
+    document.body.appendChild(elBg);
+
+    elTitle = elBg.querySelector("#rvTitle");
+    elSub   = elBg.querySelector("#rvSub");
+    elList  = elBg.querySelector("#rvList");
+    elForm  = elBg.querySelector("#rvForm");
+    elNick  = elBg.querySelector("#rvNick");
+    elText  = elBg.querySelector("#rvText");
+    elHp    = elBg.querySelector("#rvHp");
+    elSend  = elBg.querySelector("#rvSend");
+    elMsg   = elBg.querySelector("#rvMsg");
+    elRate  = elBg.querySelector("#rvRate");
+
+    elBg.addEventListener("click", (e) => { if (e.target === elBg) closeModal(); });
+    elBg.querySelector("#rvX").addEventListener("click", closeModal);
+    elSend.addEventListener("click", submitReview);
+    elText.addEventListener("keydown", (e) => { if (e.key === "Enter") submitReview(); });
+    elRate.addEventListener("click", (e) => {
+      const b = e.target.closest("b[data-s]"); if (!b) return;
+      const s = +b.dataset.s;
+      curRating = (curRating === s) ? 0 : s;
+      [...elRate.querySelectorAll("b")].forEach(x => x.classList.toggle("on", +x.dataset.s <= curRating));
+    });
+    document.addEventListener("keydown", (e) => { if (e.key === "Escape" && elBg.classList.contains("show")) closeModal(); });
+  }
+
+  function closeModal() {
+    elBg.classList.remove("show");
+    document.body.style.overflow = "";
+  }
+  function setMsg(text, type) {
+    elMsg.textContent = text || "";
+    elMsg.className = "rv-msg" + (type ? " " + type : "");
+  }
+
+  async function openReviews(name) {
+    curPlace = name;
+    curRating = 0;
+    [...elRate.querySelectorAll("b")].forEach(x => x.classList.remove("on"));
+    elTitle.textContent = name;
+    elSub.textContent = "";
+    setMsg("");
+    elText.value = ""; elNick.value = lsGet("rv_nick", "") || "";
+    elBg.classList.add("show");
+    document.body.style.overflow = "hidden";
+    if (typeof gtag === "function") gtag("event", "review_open", { place: name });
+
+    if (!CONFIGURED) {
+      elForm.style.display = "none";
+      elList.innerHTML = `<div class="rv-note">
+        한줄평 기능은 <b>Firebase 연결 후</b> 켜집니다.<br>
+        <code>reviews.js</code> 파일의 <code>firebaseConfig</code>에 본인 값을 넣어주세요.<br>
+        (함께 드린 <b>한줄평_설치가이드.md</b> 참고)</div>`;
+      return;
+    }
+    elForm.style.display = "";
+    await loadList(name);
+  }
+
+  async function loadList(name) {
+    elList.innerHTML = `<div class="rv-empty">불러오는 중…</div>`;
+    try {
+      const { fs, db } = await initFirebase();
+      const q = fs.query(
+        fs.collection(db, "reviews"),
+        fs.where("place", "==", name),
+        fs.limit(FETCH_N)
+      );
+      const snap = await fs.getDocs(q);
+      const rows = [];
+      snap.forEach(d => rows.push({ id: d.id, ...d.data() }));
+      const visible = rows
+        .filter(r => (r.reports || 0) < HIDE_AT)
+        .sort((a, b) => (b.ts && b.ts.seconds || 0) - (a.ts && a.ts.seconds || 0));
+      renderList(visible);
+    } catch (e) {
+      console.error("[리뷰] 불러오기 실패", e);
+      elList.innerHTML = `<div class="rv-empty">한줄평을 불러오지 못했어요. 잠시 후 다시 시도해주세요.</div>`;
+    }
+  }
+
+  function renderList(rows) {
+    const n = rows.length;
+    elSub.textContent = n ? `한줄평 ${n}개` : "아직 한줄평이 없어요";
+    if (!n) {
+      elList.innerHTML = `<div class="rv-empty">첫 한줄평을 남겨보세요! 🙌<br>다녀온 분의 한 줄이 다음 가족에게 큰 도움이 돼요.</div>`;
+      return;
+    }
+    elList.innerHTML = rows.map(r => `
+      <div class="rv-item">
+        <div class="rv-top">
+          <span class="rv-nick">${esc(r.nick || "익명")}</span>
+          ${r.rating ? `<span class="rv-star">${stars(r.rating)}</span>` : ""}
+          <span class="rv-time">${timeAgo(r.ts)}</span>
+        </div>
+        <div class="rv-text">${esc(r.text)}</div>
+        <button class="rv-report" data-id="${esc(r.id)}">🚩 신고</button>
+      </div>`).join("");
+    elList.querySelectorAll(".rv-report").forEach(b =>
+      b.addEventListener("click", () => reportReview(b.dataset.id)));
+  }
+
+  async function submitReview() {
+    if (loading) return;
+    const text = elText.value.trim();
+    const nick = (elNick.value.trim() || "익명").slice(0, 16);
+    if (elHp.value) { closeModal(); return; }
+    if (text.length < 2) { setMsg("한줄평을 2글자 이상 적어주세요.", "err"); return; }
+    if (text.length > MAX_LEN) { setMsg(`${MAX_LEN}자 이내로 적어주세요.`, "err"); return; }
+    const low = text.toLowerCase();
+    if (BAD_WORDS.some(w => low.includes(w))) { setMsg("부적절한 표현이 포함되어 있어요.", "err"); return; }
+    const last = lsGet("rv_last", 0);
+    if (Date.now() - last < COOLDOWN) { setMsg("잠시 후 다시 시도해주세요.", "err"); return; }
+    const done = lsGet("rv_done", []);
+    if (done.includes(curPlace)) { setMsg("이 장소에는 이미 한줄평을 남기셨어요. 감사합니다 🙏", "err"); return; }
+
+    loading = true; elSend.disabled = true; setMsg("올리는 중…");
+    try {
+      const { fs, db } = await initFirebase();
+      await fs.addDoc(fs.collection(db, "reviews"), {
+        place: curPlace, text: text, nick: nick, rating: curRating | 0, reports: 0, ts: fs.serverTimestamp()
+      });
+      lsSet("rv_last", Date.now());
+      lsSet("rv_nick", nick === "익명" ? "" : nick);
+      done.push(curPlace); lsSet("rv_done", done);
+      if (typeof gtag === "function") gtag("event", "review_add", { place: curPlace });
+      elText.value = ""; curRating = 0;
+      [...elRate.querySelectorAll("b")].forEach(x => x.classList.remove("on"));
+      setMsg("등록됐어요. 고맙습니다! 🙌", "ok");
+      await loadList(curPlace);
+    } catch (e) {
+      console.error("[리뷰] 등록 실패", e);
+      setMsg("등록에 실패했어요. 잠시 후 다시 시도해주세요.", "err");
+    } finally {
+      loading = false; elSend.disabled = false;
+    }
+  }
+
+  async function reportReview(id) {
+    const reported = lsGet("rv_reported", []);
+    if (reported.includes(id)) { setMsg("이미 신고한 한줄평이에요.", "err"); return; }
+    if (!confirm("이 한줄평을 신고할까요? (욕설·광고·허위 등)")) return;
+    try {
+      const { fs, db } = await initFirebase();
+      await fs.updateDoc(fs.doc(db, "reviews", id), { reports: fs.increment(1) });
+      reported.push(id); lsSet("rv_reported", reported);
+      if (typeof gtag === "function") gtag("event", "review_report");
+      setMsg("신고 접수됐어요. 확인 후 조치할게요.", "ok");
+      await loadList(curPlace);
+    } catch (e) {
+      console.error("[리뷰] 신고 실패", e);
+      setMsg("신고 처리에 실패했어요.", "err");
+    }
+  }
+
+  // ===== 장소명 클릭 → 한줄평 창 열기 (이벤트 위임) =====
+  function wireGrid() {
+    const grid = document.getElementById("grid");
+    if (!grid) return;
+    grid.addEventListener("click", (e) => {
+      const t = e.target.closest(".rv-open, .rv-btn");
+      if (!t) return;
+      e.preventDefault();
+      openReviews(t.dataset.n);
+    });
+  }
+
+  // ===== 초기화 (중복 실행 방지) =====
+  function start() {
+    if (window.__rvInit) return;
+    window.__rvInit = true;
+    injectCSS();
+    buildModal();
+    wireGrid();
+    window.openReviews = openReviews;
+  }
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", start);
+  } else {
+    start();
+  }
+})();
+
+</script>
 </body>
 </html>
