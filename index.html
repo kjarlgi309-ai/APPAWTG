@@ -821,6 +821,7 @@ loadWeather();
       lsSet("rv_nick", nick === "익명" ? "" : nick);
       done.push(curPlace); lsSet("rv_done", done);
       if (typeof gtag === "function") gtag("event", "review_add", { place: curPlace });
+      if (RV_COUNTS) { RV_COUNTS[curPlace] = (RV_COUNTS[curPlace] || 0) + 1; paintCounts(); }
       elText.value = ""; curRating = 0;
       [...elRate.querySelectorAll("b")].forEach(x => x.classList.remove("on"));
       setMsg("등록됐어요. 고맙습니다! 🙌", "ok");
@@ -850,6 +851,31 @@ loadWeather();
     }
   }
 
+  // ===== 카드에 한줄평 개수 표시 =====
+  let RV_COUNTS = null;
+  function paintCounts() {
+    if (!RV_COUNTS) return;
+    document.querySelectorAll("#grid h3.rv-open").forEach(h => {
+      const sign = h.querySelector(".rv-sign");
+      if (!sign) return;
+      const c = RV_COUNTS[h.dataset.n] || 0;
+      sign.textContent = c ? `💬 한줄평 ${c}` : "💬 한줄평";
+    });
+  }
+  async function loadCounts() {
+    if (!CONFIGURED) return;
+    try {
+      const { fs, db } = await initFirebase();
+      const snap = await fs.getDocs(fs.collection(db, "reviews"));
+      const m = {};
+      snap.forEach(d => { const pl = d.data().place; if (pl) m[pl] = (m[pl] || 0) + 1; });
+      RV_COUNTS = m;
+      paintCounts();
+      const grid = document.getElementById("grid");
+      if (grid) new MutationObserver(paintCounts).observe(grid, { childList: true });
+    } catch (e) { console.error("[리뷰] 개수 로드 실패", e); }
+  }
+
   // ===== 장소명 클릭 → 한줄평 창 열기 (이벤트 위임) =====
   function wireGrid() {
     const grid = document.getElementById("grid");
@@ -869,6 +895,7 @@ loadWeather();
     injectCSS();
     buildModal();
     wireGrid();
+    loadCounts();
     window.openReviews = openReviews;
   }
   if (document.readyState === "loading") {
