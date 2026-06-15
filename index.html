@@ -118,9 +118,17 @@
 
   footer{text-align:center;margin-top:50px;font-size:12px;color:var(--sub)}
   footer a{color:var(--sub)}
+  .search-wrap{position:relative;margin-top:8px}
+  .search-wrap .search{margin-top:0}
+  .search-clear{position:absolute;right:8px;top:0;height:100%;width:34px;border:none;background:none;color:var(--sub);font-size:20px;line-height:1;cursor:pointer;display:none;align-items:center;justify-content:center}
+  .search-clear:hover{color:var(--ink)}
+  #toTop{position:fixed;right:18px;bottom:18px;z-index:90;width:46px;height:46px;border:none;border-radius:50%;background:var(--accent);color:#fff;font-size:22px;font-weight:800;cursor:pointer;box-shadow:0 6px 16px rgba(255,107,53,.35);display:none;align-items:center;justify-content:center;transition:opacity .2s,transform .15s}
+  #toTop:active{transform:scale(.92)}
+  #toTop.show{display:flex}
 </style>
 </head>
 <body>
+<button id="toTop" type="button" aria-label="맨 위로" title="맨 위로">↑</button>
 <div class="wrap">
   <header>
     <h1>아빠, <em>이번 주말</em> 어디가?</h1>
@@ -163,7 +171,10 @@
       <button class="chip" data-v="가성비">가성비 (1만원↓)</button>
       <button class="chip" data-v="플렉스">플렉스</button>
     </div>
-    <input class="search" id="q" placeholder="🔍 장소 이름이나 키워드 검색 (예: 공룡, 물놀이, 기차)">
+    <div class="search-wrap">
+      <input class="search" id="q" placeholder="🔍 장소 이름이나 키워드 검색 (예: 공룡, 물놀이, 기차)">
+      <button class="search-clear" id="qClear" type="button" aria-label="검색어 지우기">×</button>
+    </div>
   </div>
 
   <div class="count-row">
@@ -437,6 +448,18 @@ document.querySelectorAll(".frow").forEach(row=>{
   });
 });
 document.getElementById("q").addEventListener("input",e=>{state.q=e.target.value.trim();render();});
+(function(){
+  const qi=document.getElementById("q"), qc=document.getElementById("qClear");
+  function upd(){ qc.style.display = qi.value ? "flex" : "none"; }
+  qi.addEventListener("input", upd);
+  qc.addEventListener("click", ()=>{ qi.value=""; state.q=""; upd(); render(); qi.focus(); });
+  upd();
+})();
+(function(){
+  const btn=document.getElementById("toTop");
+  window.addEventListener("scroll", ()=>{ btn.classList.toggle("show", window.scrollY>400); });
+  btn.addEventListener("click", ()=>window.scrollTo({top:0,behavior:"smooth"}));
+})();
 
 // ===== 랜덤 추천 =====
 function randomPick(){
@@ -525,10 +548,17 @@ function applyIndoor(){
   document.getElementById("grid").scrollIntoView({behavior:"smooth"});
 }
 
+// 첫 화면: 방문지역 랜덤 선택
+(function(){
+  const regions=["수도권","강원","충청","경상","전라","제주"];
+  state.region=regions[Math.floor(Math.random()*regions.length)];
+  const row=document.querySelector('.frow[data-key="region"]');
+  if(row) row.querySelectorAll(".chip").forEach(c=>c.classList.toggle("on", c.dataset.v===state.region));
+})();
 render();
 loadWeather();
 </script>
-<!-- 한줄평 기능 (인라인 통합 — 별도 reviews.js 불필요) -->
+<!-- 한줄평 기능 (인라인 통합) -->
 <script>
 /* ============================================================
    APPAWTG 한줄평(리뷰) 모듈  —  reviews.js
