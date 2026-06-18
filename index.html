@@ -212,7 +212,7 @@
 // place: 실내/실외/혼합  | age: [유아,초등] | cost: 무료/가성비/플렉스
 const PLACES = [
  // ---------- 수도권 ----------
- {n:"국립과천과학관",e:"🔭",r:"수도권",l:"경기 과천",p:"혼합",a:["유아","초등"],c:"가성비",t:["과학","체험"],d:"국내 최대급 과학관. 공룡부터 우주까지, 하루가 모자라요. 천체투영관은 예약 필수."},
+ {n:"국립과천과학관",e:"🔭",r:"수도권",l:"경기 과천",p:"혼합",a:["유아","초등"],c:"가성비",t:["과학","체험"],d:"국내 최대급 과학관. 공룡부터 우주까지, 하루가 모자라요. 천체투영관은 예약 필수.",info:{주차:"있음(유료)",유아차:"가능",수유실:"있음",운영시간:"09:30~17:30 (월 휴관)"}},
  {n:"서울대공원 동물원",e:"🦁",r:"수도권",l:"경기 과천",p:"실외",a:["유아","초등"],c:"가성비",t:["동물","자연"],d:"호랑이·코끼리·기린까지. 리프트 타고 올라가는 재미는 덤. 봄가을 벚꽃·단풍 명소."},
  {n:"국립중앙박물관 어린이박물관",e:"🏛️",r:"수도권",l:"서울 용산",p:"실내",a:["유아","초등"],c:"무료",t:["역사","체험"],d:"무료인데 퀄리티는 최상급. 온라인 사전예약 필수! 본관 거울못 산책도 좋아요."},
  {n:"국립어린이과학관",e:"🧪",r:"수도권",l:"서울 혜화",p:"실내",a:["유아","초등"],c:"가성비",t:["과학","체험"],d:"감각·상상·창작 놀이터에 천체관까지. 비 오는 날 구세주. 예약하고 가세요."},
@@ -226,11 +226,11 @@ const PLACES = [
  {n:"서대문자연사박물관",e:"🦕",r:"수도권",l:"서울 서대문",p:"실내",a:["유아","초등"],c:"가성비",t:["공룡","과학"],d:"공룡 좋아하는 아이라면 무조건. 규모 대비 알차고 입장료도 착해요."},
  {n:"임진각 평화누리공원",e:"🪁",r:"수도권",l:"경기 파주",p:"실외",a:["유아","초등"],c:"무료",t:["자연","피크닉"],d:"드넓은 잔디언덕에 바람개비. 연날리기·피크닉 성지. 곤돌라는 별도 요금."},
  {n:"강화 씨사이드리조트 루지",e:"🛷",r:"수도권",l:"인천 강화",p:"실외",a:["초등"],c:"플렉스",t:["액티비티"],d:"바다 보며 내려오는 루지. 초등 아이들 환호 보장. 주말 오전 일찍 가야 덜 기다려요."},
- {n:"서울숲",e:"🦌",r:"수도권",l:"서울 성동",p:"실외",a:["유아","초등"],c:"무료",t:["자연","피크닉"],d:"꽃사슴 먹이주기 되는 무료 공원. 돗자리+김밥이면 완성. 지하철로 가기도 편함."},
+ {n:"서울숲",e:"🦌",r:"수도권",l:"서울 성동",p:"실외",a:["유아","초등"],c:"무료",t:["자연","피크닉"],d:"꽃사슴 먹이주기 되는 무료 공원. 돗자리+김밥이면 완성. 지하철로 가기도 편함.",info:{주차:"협소(주말 혼잡)",유아차:"매우 좋음",수유실:"있음(방문자센터)",요금:"무료"}},
  {n:"아쿠아플라넷 일산",e:"🦈",r:"수도권",l:"경기 고양",p:"실내",a:["유아","초등"],c:"플렉스",t:["동물","아쿠아리움"],d:"수족관+동물원+공연 결합형. 비 오는 날 일산 킨텍스 나들이와 묶기 좋아요."},
  {n:"키자니아 서울",e:"🎬",r:"수도권",l:"서울 잠실",p:"실내",a:["초등"],c:"플렉스",t:["직업","체험"],d:"아이가 직접 돈 벌고 쓰는 직업체험 도시. 인기 체험은 입장 직후 예약이 필수."},
  {n:"서울식물원",e:"🌿",r:"수도권",l:"서울 마곡",p:"혼합",a:["유아","초등"],c:"가성비",t:["자연","식물"],d:"거대 온실(열대·지중해관)이 하이라이트. 야외 호수공원은 무료, 유모차 산책 최적."},
- {n:"국립항공박물관",e:"✈️",r:"수도권",l:"서울 강서",p:"실내",a:["유아","초등"],c:"무료",t:["비행기","체험"],d:"진짜 비행기가 가득한 무료 박물관. 관제탑·조종 체험(유료)은 오픈런 필수."},
+ {n:"국립항공박물관",e:"✈️",r:"수도권",l:"서울 강서",p:"실내",a:["유아","초등"],c:"무료",t:["비행기","체험"],d:"진짜 비행기가 가득한 무료 박물관. 관제탑·조종 체험(유료)은 오픈런 필수.",info:{주차:"있음",유아차:"가능",수유실:"있음",요금:"무료(상설)"}},
  {n:"전쟁기념관",e:"🎖️",r:"수도권",l:"서울 용산",p:"혼합",a:["초등"],c:"무료",t:["역사"],d:"탱크·전투기 야외전시에 아이들 눈이 커져요. 어린이박물관도 무료."},
  {n:"북서울꿈의숲",e:"🌸",r:"수도권",l:"서울 강북",p:"실외",a:["유아","초등"],c:"무료",t:["자연","피크닉"],d:"전망대까지 무료인 대형 공원. 사슴 방사장도 있어요. 강북의 서울숲."},
  {n:"광명동굴",e:"⛏️",r:"수도권",l:"경기 광명",p:"실내",a:["초등"],c:"가성비",t:["동굴","체험"],d:"폐광산의 변신. 한여름에도 시원한 12도. 미디어아트와 와인동굴(아빠 찬스)."},
@@ -320,6 +320,7 @@ const PLACES = [
 ];
 // 외부 데이터 파일(places_extra.js)이 있으면 합치기
 if(typeof EXTRA!=="undefined")PLACES.push(...EXTRA);
+window.APP={getPlace:(n)=>PLACES.find(p=>p.n===n)};
 // 직접 큐레이션 장소에 좌표 적용 (places_extra.js의 BASE_COORDS)
 if(typeof BASE_COORDS!=="undefined")PLACES.forEach(p=>{const c=BASE_COORDS[p.n];if(c){p.x=c[0];p.y=c[1];}});
 
@@ -688,6 +689,18 @@ loadWeather();
     .rv-msg.err{color:#e0245e}.rv-msg.ok{color:#2e7d32}
     .rv-note{font-size:12px;color:#8a8178;line-height:1.5;text-align:center;padding:20px}
     .rv-note code{background:#f3eee7;padding:1px 5px;border-radius:4px;font-size:11px}
+    .rv-detail{padding:12px 20px 2px}
+    .rv-d-loc{color:var(--accent,#ff6b35);font-weight:700;font-size:13.5px}
+    .rv-badges{display:flex;flex-wrap:wrap;gap:5px;margin:8px 0}
+    .rv-badge{font-size:11px;padding:3px 9px;border-radius:99px;background:#f3eee7;color:#6b6359;font-weight:700}
+    .rv-badge.free{background:#e8f5e9;color:#2e7d32}
+    .rv-d-desc{font-size:13.5px;color:#4a443c;line-height:1.55;margin:6px 0 10px}
+    .rv-infos{display:flex;flex-direction:column;gap:6px;background:#faf8f5;border:1px solid #eee7de;border-radius:12px;padding:11px 13px;margin-bottom:10px}
+    .rv-info{display:flex;justify-content:space-between;gap:10px;font-size:13px}
+    .rv-info span{color:#8a8178;font-weight:600}
+    .rv-info b{color:#3a352e;font-weight:700;text-align:right}
+    .rv-info-empty{font-size:12px;color:#b3aaa0;background:#faf8f5;border:1px dashed #e7e2fb;border-radius:10px;padding:9px 12px;margin-bottom:10px;text-align:center}
+    .rv-more{display:inline-block;font-size:13px;font-weight:700;color:#5b3fd1;background:#f5f3ff;border:1px solid #e7e2fb;border-radius:99px;padding:7px 13px;text-decoration:none;margin-bottom:6px}
     `;
     const el = document.createElement("style");
     el.textContent = css;
@@ -695,7 +708,7 @@ loadWeather();
   }
 
   // ===== 모달 DOM =====
-  let elBg, elTitle, elSub, elList, elForm, elNick, elText, elHp, elSend, elMsg, elRate;
+  let elBg, elTitle, elSub, elList, elForm, elNick, elText, elHp, elSend, elMsg, elRate, elDetail;
   let curPlace = null, curRating = 0, loading = false;
 
   function buildModal() {
@@ -711,6 +724,7 @@ loadWeather();
           </div>
           <button class="rv-x" id="rvX" aria-label="닫기">×</button>
         </div>
+        <div class="rv-detail" id="rvDetail"></div>
         <div class="rv-list" id="rvList"></div>
         <div class="rv-form" id="rvForm">
           <div class="rv-rate" id="rvRate">
@@ -731,6 +745,7 @@ loadWeather();
     elTitle = elBg.querySelector("#rvTitle");
     elSub   = elBg.querySelector("#rvSub");
     elList  = elBg.querySelector("#rvList");
+    elDetail = elBg.querySelector("#rvDetail");
     elForm  = elBg.querySelector("#rvForm");
     elNick  = elBg.querySelector("#rvNick");
     elText  = elBg.querySelector("#rvText");
@@ -766,6 +781,7 @@ loadWeather();
     curRating = 0;
     [...elRate.querySelectorAll("b")].forEach(x => x.classList.remove("on"));
     elTitle.textContent = name;
+    renderDetail(window.APP && window.APP.getPlace ? window.APP.getPlace(name) : null);
     elSub.textContent = "";
     setMsg("");
     elText.value = ""; elNick.value = lsGet("rv_nick", "") || "";
@@ -905,6 +921,25 @@ loadWeather();
       const grid = document.getElementById("grid");
       if (grid) new MutationObserver(paintCounts).observe(grid, { childList: true });
     } catch (e) { console.error("[리뷰] 개수 로드 실패", e); }
+  }
+
+  // ===== 장소 상세 정보(아빠 시점) 렌더 =====
+  function costBadge(c){return c==="무료"?'<span class="rv-badge free">💸 무료</span>':c==="가성비"?'<span class="rv-badge">💰 1만원↓</span>':'<span class="rv-badge">💳 플렉스</span>';}
+  function placeBadge(p){return p==="실내"?'<span class="rv-badge">☔ 실내</span>':p==="실외"?'<span class="rv-badge">☀️ 실외</span>':'<span class="rv-badge">⛅ 실내+실외</span>';}
+  function renderDetail(p){
+    if(!elDetail) return;
+    if(!p){ elDetail.innerHTML=""; return; }
+    const badges = costBadge(p.c)+placeBadge(p.p)+(p.a||[]).map(a=>`<span class="rv-badge">${a==="유아"?"👶 유아":"🧒 초등"}</span>`).join("");
+    const info = p.info||{};
+    const rows = [["🅿️","주차",info.주차],["🚼","유아차",info.유아차],["🍼","수유실",info.수유실],["🕘","운영시간",info.운영시간],["💵","요금",info.요금]]
+      .filter(r=>r[2]).map(r=>`<div class="rv-info"><span>${r[0]} ${r[1]}</span><b>${esc(r[2])}</b></div>`).join("");
+    const slug = (window.SLUGMAP && window.SLUGMAP[p.n]) || null;
+    elDetail.innerHTML = `
+      <div class="rv-d-loc">📍 ${esc(p.l)}</div>
+      <div class="rv-badges">${badges}</div>
+      <div class="rv-d-desc">${esc(p.d||"")}</div>
+      ${rows?`<div class="rv-infos">${rows}</div>`:`<div class="rv-info-empty">🅿️ 주차·🚼 유아차·🍼 수유실 정보는 준비 중이에요</div>`}
+      ${slug?`<a class="rv-more" href="/place/${slug}/">상세·공유 페이지 열기 →</a>`:""}`;
   }
 
   // ===== 장소명 클릭 → 한줄평 창 열기 (이벤트 위임) =====
