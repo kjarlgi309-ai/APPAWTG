@@ -84,6 +84,10 @@ h1{font-size:clamp(22px,5vw,30px);font-weight:800;letter-spacing:-.6px;margin:14
 .links a{font-size:13px;color:#5b3fd1;text-decoration:none;background:#f5f3ff;border:1px solid #e7e2fb;border-radius:99px;padding:5px 11px}
 footer{margin-top:36px;padding-top:18px;border-top:1px solid #eee7de;font-size:12px;color:#8a8178}
 footer a{color:#8a8178}
+.pinfo{display:flex;flex-direction:column;gap:7px;background:#fff;border:1px solid #eee7de;border-radius:14px;padding:14px 16px;margin:8px 0 4px}
+.pinfo>div{display:flex;justify-content:space-between;gap:10px;font-size:14px}
+.pinfo span{color:#8a8178;font-weight:600}
+.pinfo b{color:#3a352e;font-weight:700;text-align:right}
 `;
 function page({title,desc,canonical,jsonld,body}){
   return `<!DOCTYPE html><html lang="ko"><head>
@@ -110,6 +114,7 @@ function googleUrl(p){ return p.y?`https://www.google.com/maps/dir/?api=1&destin
 
 // ---------- 빌드 ----------
 const ALL = loadData();
+let INFO_AUTO={}; try{ INFO_AUTO=JSON.parse(fs.readFileSync("info_auto.js","utf8").trim().replace(/^window\.INFO_AUTO\s*=\s*/,"").replace(/;?\s*$/,"")); }catch(e){}
 // 슬러그 부여(중복 방지)
 const used={};
 ALL.forEach(p=>{ let s=slugify(shortName(p.n)); if(used[s]){ used[s]++; s=s+"-"+used[s]; } else used[s]=1; p.slug=s; });
@@ -161,6 +166,7 @@ ALL.forEach(p=>{
   <div class="badges">${costBadge(p.c)}${placeBadge(p.p)}${p.a.map(a=>`<span class="badge">${a==='유아'?'👶 유아':'🧒 초등'}</span>`).join("")}</div>
   <p class="desc">${esc(p.d||"")}</p>
   <div class="tags">${(p.t||[]).map(t=>`<span class="tag">#${esc(t)}</span>`).join("")}</div>
+  ${(()=>{const info=Object.assign({},INFO_AUTO[p.n]||{},p.info||{});const r=[["🕘","운영시간",info.운영시간],["💵","요금",info.요금],["🅿️","주차",info.주차],["🚼","유아차",info.유아차],["🍼","수유실",info.수유실],["🚻","화장실",info.화장실],["👶","기저귀교환대",info.기저귀교환대]].filter(x=>x[2]);return r.length?`<div class="sec-t">아빠 시점 정보</div><div class="pinfo">${r.map(x=>`<div><span>${x[0]} ${x[1]}</span><b>${esc(x[2])}</b></div>`).join("")}</div>`:"";})()}
   <div class="maps"><a class="naver" href="${naverUrl(p.n)}" target="_blank" rel="noopener">네이버 지도</a>
   <a class="kakao" href="${kakaoUrl(p)}" target="_blank" rel="noopener">카카오 지도</a>
   <a href="${googleUrl(p)}" target="_blank" rel="noopener">구글 지도</a></div>
@@ -221,7 +227,18 @@ ${urls.map(u=>`  <url><loc>${u.loc}</loc><lastmod>${TODAY}</lastmod><changefreq>
 write("sitemap.xml", sm);
 write("robots.txt", `User-agent: *\nAllow: /\n\nSitemap: ${SITE}/sitemap.xml\n`);
 // ----- 앱 본체 + 커스텀도메인 포함 (배포 산출물 완성) -----
-for(const f of ["index.html","places_extra.js"]){ if(fs.existsSync(f)) fs.copyFileSync(f, path.join(OUT,f)); }
+// 슬러그맵(이름->슬러그) — 인앱 시트의 상세페이지 링크용
+const slugmap={}; ALL.forEach(p=>{ slugmap[p.n]=p.slug; });
+fs.writeFileSync(path.join(OUT,"slugmap.js"), "window.SLUGMAP="+JSON.stringify(slugmap)+";");
+// 앱 본체 복사 (index.html에는 slugmap.js 로더 주입)
+if(fs.existsSync("index.html")){
+  let html=fs.readFileSync("index.html","utf8");
+  if(!html.includes("slugmap.js")) html=html.replace("\n</body>", "\n<script src=\"/slugmap.js\"></script>\n</body>");
+  if(!html.includes("info_auto.js")) html=html.replace("\n</body>", "\n<script src=\"/info_auto.js\"></script>\n</body>");
+  fs.writeFileSync(path.join(OUT,"index.html"), html);
+}
+if(fs.existsSync("places_extra.js")) fs.copyFileSync("places_extra.js", path.join(OUT,"places_extra.js"));
+if(fs.existsSync("info_auto.js")) fs.copyFileSync("info_auto.js", path.join(OUT,"info_auto.js"));
 fs.writeFileSync(path.join(OUT,"CNAME"), "appawtg.com\n");
 
 
