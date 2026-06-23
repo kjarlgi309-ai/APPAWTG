@@ -114,6 +114,7 @@ function googleUrl(p){ return p.y?`https://www.google.com/maps/dir/?api=1&destin
 
 // ---------- 빌드 ----------
 const ALL = loadData();
+let INFO_AUTO={}; try{ INFO_AUTO=JSON.parse(fs.readFileSync("info_auto.js","utf8").trim().replace(/^window\.INFO_AUTO\s*=\s*/,"").replace(/;?\s*$/,"")); }catch(e){}
 // 슬러그 부여(중복 방지)
 const used={};
 ALL.forEach(p=>{ let s=slugify(shortName(p.n)); if(used[s]){ used[s]++; s=s+"-"+used[s]; } else used[s]=1; p.slug=s; });
@@ -165,7 +166,7 @@ ALL.forEach(p=>{
   <div class="badges">${costBadge(p.c)}${placeBadge(p.p)}${p.a.map(a=>`<span class="badge">${a==='유아'?'👶 유아':'🧒 초등'}</span>`).join("")}</div>
   <p class="desc">${esc(p.d||"")}</p>
   <div class="tags">${(p.t||[]).map(t=>`<span class="tag">#${esc(t)}</span>`).join("")}</div>
-  ${(()=>{const info=p.info||{};const r=[["🅿️","주차",info.주차],["🚼","유아차",info.유아차],["🍼","수유실",info.수유실],["🕘","운영시간",info.운영시간],["💵","요금",info.요금]].filter(x=>x[2]);return r.length?`<div class="sec-t">아빠 시점 정보</div><div class="pinfo">${r.map(x=>`<div><span>${x[0]} ${x[1]}</span><b>${esc(x[2])}</b></div>`).join("")}</div>`:"";})()}
+  ${(()=>{const info=Object.assign({},INFO_AUTO[p.n]||{},p.info||{});const r=[["🕘","운영시간",info.운영시간],["💵","요금",info.요금],["🅿️","주차",info.주차],["🚼","유아차",info.유아차],["🍼","수유실",info.수유실],["🚻","화장실",info.화장실],["👶","기저귀교환대",info.기저귀교환대]].filter(x=>x[2]);return r.length?`<div class="sec-t">아빠 시점 정보</div><div class="pinfo">${r.map(x=>`<div><span>${x[0]} ${x[1]}</span><b>${esc(x[2])}</b></div>`).join("")}</div>`:"";})()}
   <div class="maps"><a class="naver" href="${naverUrl(p.n)}" target="_blank" rel="noopener">네이버 지도</a>
   <a class="kakao" href="${kakaoUrl(p)}" target="_blank" rel="noopener">카카오 지도</a>
   <a href="${googleUrl(p)}" target="_blank" rel="noopener">구글 지도</a></div>
@@ -233,9 +234,11 @@ fs.writeFileSync(path.join(OUT,"slugmap.js"), "window.SLUGMAP="+JSON.stringify(s
 if(fs.existsSync("index.html")){
   let html=fs.readFileSync("index.html","utf8");
   if(!html.includes("slugmap.js")) html=html.replace("\n</body>", "\n<script src=\"/slugmap.js\"></script>\n</body>");
+  if(!html.includes("info_auto.js")) html=html.replace("\n</body>", "\n<script src=\"/info_auto.js\"></script>\n</body>");
   fs.writeFileSync(path.join(OUT,"index.html"), html);
 }
 if(fs.existsSync("places_extra.js")) fs.copyFileSync("places_extra.js", path.join(OUT,"places_extra.js"));
+if(fs.existsSync("info_auto.js")) fs.copyFileSync("info_auto.js", path.join(OUT,"info_auto.js"));
 fs.writeFileSync(path.join(OUT,"CNAME"), "appawtg.com\n");
 
 

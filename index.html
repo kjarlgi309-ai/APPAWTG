@@ -930,8 +930,8 @@ loadWeather();
     if(!elDetail) return;
     if(!p){ elDetail.innerHTML=""; return; }
     const badges = costBadge(p.c)+placeBadge(p.p)+(p.a||[]).map(a=>`<span class="rv-badge">${a==="유아"?"👶 유아":"🧒 초등"}</span>`).join("");
-    const info = p.info||{};
-    const rows = [["🅿️","주차",info.주차],["🚼","유아차",info.유아차],["🍼","수유실",info.수유실],["🕘","운영시간",info.운영시간],["💵","요금",info.요금]]
+    const info = Object.assign({}, (window.INFO_AUTO && window.INFO_AUTO[p.n]) || {}, p.info || {});
+    const rows = [["🕘","운영시간",info.운영시간],["💵","요금",info.요금],["🅿️","주차",info.주차],["🚼","유아차",info.유아차],["🍼","수유실",info.수유실],["🚻","화장실",info.화장실],["👶","기저귀교환대",info.기저귀교환대]]
       .filter(r=>r[2]).map(r=>`<div class="rv-info"><span>${r[0]} ${r[1]}</span><b>${esc(r[2])}</b></div>`).join("");
     const slug = (window.SLUGMAP && window.SLUGMAP[p.n]) || null;
     elDetail.innerHTML = `
