@@ -125,6 +125,19 @@
   #toTop{position:fixed;right:18px;bottom:18px;z-index:90;width:46px;height:46px;border:none;border-radius:50%;background:var(--accent);color:#fff;font-size:22px;font-weight:800;cursor:pointer;box-shadow:0 6px 16px rgba(255,107,53,.35);display:none;align-items:center;justify-content:center;transition:opacity .2s,transform .15s}
   #toTop:active{transform:scale(.92)}
   #toTop.show{display:flex}
+  .map-link.map-pick{border-color:#4b78e0;background:#4b78e0;color:#fff;cursor:pointer;font-family:inherit}
+  .map-link.map-pick:hover{background:#3a63c4;border-color:#3a63c4}
+  .mc-bg{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:flex-end;justify-content:center;z-index:150;padding:0}
+  .mc-bg.show{display:flex}
+  @media(min-width:560px){.mc-bg{align-items:center;padding:20px}}
+  .mc{background:#fff;border-radius:18px 18px 0 0;width:100%;max-width:360px;padding:18px;animation:pop .2s}
+  @media(min-width:560px){.mc{border-radius:18px}}
+  .mc-t{font-size:15px;font-weight:800;text-align:center;margin-bottom:14px;color:var(--ink)}
+  .mc-opt{display:block;text-align:center;text-decoration:none;font-weight:800;font-size:15px;padding:13px;border-radius:12px;margin-bottom:8px}
+  .mc-opt.naver{background:#03c75a;color:#fff}
+  .mc-opt.kakao{background:#fee500;color:#191919}
+  .mc-opt.google{background:#fff;border:1.5px solid #dadce0;color:#3c4043}
+  .mc-cancel{width:100%;padding:11px;border:none;background:none;color:var(--sub);font-size:14px;font-weight:700;cursor:pointer}
 </style>
 </head>
 <body>
@@ -205,6 +218,15 @@
   </div>
 </div>
 
+<div class="mc-bg" id="mcBg" onclick="if(event.target===this)closeMapPick()">
+  <div class="mc">
+    <div class="mc-t" id="mcT">지도 열기</div>
+    <a class="mc-opt naver" id="mcNaver" target="_blank" rel="noopener">네이버 지도</a>
+    <a class="mc-opt kakao" id="mcKakao" target="_blank" rel="noopener">카카오 지도</a>
+    <a class="mc-opt google" id="mcGoogle" target="_blank" rel="noopener">구글 지도</a>
+    <button class="mc-cancel" onclick="closeMapPick()">닫기</button>
+  </div>
+</div>
 <script src="places_extra.js"></script>
 <script>
 // ===== 장소 데이터 =====
@@ -421,9 +443,7 @@ function render(){
         ${x.t.map(t=>`<span class="tag">#${t}</span>`).join("")}
       </div>
       <div class="map-row">
-        <a class="map-link naver" href="${mapUrl(x.n)}" target="_blank" rel="noopener">네이버 지도</a>
-        <a class="map-link kakao" href="${kakaoUrl(x)}" target="_blank" rel="noopener">카카오 지도</a>
-        <a class="map-link google" href="${googleUrl(x)}" target="_blank" rel="noopener"><span style="color:#4285F4">G</span><span style="color:#EA4335">o</span><span style="color:#FBBC05">o</span><span style="color:#4285F4">g</span><span style="color:#34A853">l</span><span style="color:#EA4335">e</span> 지도</a>
+        <button class="map-link mapbtn map-pick" data-n="${x.n}">🗺️ 지도</button>
         <a class="map-link food" href="${foodUrl(x)}" target="_blank" rel="noopener">🍜 주변 맛집</a>
         ${x.y&&!state.near?`<button class="map-link near near-btn" data-n="${x.n}">📍 근처 ${nearCount(x)}곳 더보기</button>`:""}
       </div>
@@ -432,6 +452,8 @@ function render(){
 
 // 카드 내 버튼 이벤트 (찜·근처보기)
 grid.addEventListener("click",e=>{
+  const mp=e.target.closest(".map-pick");
+  if(mp){openMapPick(mp.dataset.n);return;}
   const f=e.target.closest(".fav-btn");
   if(f){toggleFav(f.dataset.n);return;}
   const nb=e.target.closest(".near-btn");
@@ -476,6 +498,16 @@ function randomPick(){
   document.getElementById("modalBg").classList.add("show");
 }
 function closeModal(){document.getElementById("modalBg").classList.remove("show");}
+function openMapPick(name){
+  const p=PLACES.find(x=>x.n===name); if(!p)return;
+  if(typeof gtag==="function")gtag('event','map_open');
+  document.getElementById("mcT").textContent=shortName(p.n);
+  document.getElementById("mcNaver").href=mapUrl(p.n);
+  document.getElementById("mcKakao").href=kakaoUrl(p);
+  document.getElementById("mcGoogle").href=googleUrl(p);
+  document.getElementById("mcBg").classList.add("show");
+}
+function closeMapPick(){document.getElementById("mcBg").classList.remove("show");}
 
 // ===== 주말 날씨 (Open-Meteo, 무료·키 불필요) =====
 const REGION_GEO={
