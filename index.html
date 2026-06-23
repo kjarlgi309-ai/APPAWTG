@@ -696,9 +696,9 @@ loadWeather();
     .rv-badge.free{background:#e8f5e9;color:#2e7d32}
     .rv-d-desc{font-size:13.5px;color:#4a443c;line-height:1.55;margin:6px 0 10px}
     .rv-infos{display:flex;flex-direction:column;gap:6px;background:#faf8f5;border:1px solid #eee7de;border-radius:12px;padding:11px 13px;margin-bottom:10px}
-    .rv-info{display:flex;justify-content:space-between;gap:10px;font-size:13px}
-    .rv-info span{color:#8a8178;font-weight:600}
-    .rv-info b{color:#3a352e;font-weight:700;text-align:right}
+    .rv-info{display:flex;gap:10px;font-size:13px}
+    .rv-info span{color:#8a8178;font-weight:600;flex:0 0 auto;min-width:62px}
+    .rv-info b{color:#3a352e;font-weight:600;text-align:left;flex:1;word-break:break-word;line-height:1.45}
     .rv-info-empty{font-size:12px;color:#b3aaa0;background:#faf8f5;border:1px dashed #e7e2fb;border-radius:10px;padding:9px 12px;margin-bottom:10px;text-align:center}
     .rv-more{display:inline-block;font-size:13px;font-weight:700;color:#5b3fd1;background:#f5f3ff;border:1px solid #e7e2fb;border-radius:99px;padding:7px 13px;text-decoration:none;margin-bottom:6px}
     `;
@@ -939,7 +939,7 @@ loadWeather();
       <div class="rv-badges">${badges}</div>
       <div class="rv-d-desc">${esc(p.d||"")}</div>
       ${rows?`<div class="rv-infos">${rows}</div>`:`<div class="rv-info-empty">🅿️ 주차·🚼 유아차·🍼 수유실 정보는 준비 중이에요</div>`}
-      ${slug?`<a class="rv-more" href="/place/${slug}/">상세·공유 페이지 열기 →</a>`:""}`;
+      ${slug?`<a class="rv-more" href="/place/${slug}/">상세 페이지 →</a>`:""}`;
   }
 
   // ===== 장소명 클릭 → 한줄평 창 열기 (이벤트 위임) =====
