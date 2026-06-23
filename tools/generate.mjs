@@ -85,9 +85,9 @@ h1{font-size:clamp(22px,5vw,30px);font-weight:800;letter-spacing:-.6px;margin:14
 footer{margin-top:36px;padding-top:18px;border-top:1px solid #eee7de;font-size:12px;color:#8a8178}
 footer a{color:#8a8178}
 .pinfo{display:flex;flex-direction:column;gap:7px;background:#fff;border:1px solid #eee7de;border-radius:14px;padding:14px 16px;margin:8px 0 4px}
-.pinfo>div{display:flex;justify-content:space-between;gap:10px;font-size:14px}
-.pinfo span{color:#8a8178;font-weight:600}
-.pinfo b{color:#3a352e;font-weight:700;text-align:right}
+.pinfo>div{display:flex;gap:12px;font-size:14px}
+.pinfo span{color:#8a8178;font-weight:600;flex:0 0 auto;min-width:72px}
+.pinfo b{color:#3a352e;font-weight:600;text-align:left;flex:1;word-break:break-word;line-height:1.5}
 `;
 function page({title,desc,canonical,jsonld,body}){
   return `<!DOCTYPE html><html lang="ko"><head>
@@ -170,7 +170,7 @@ ALL.forEach(p=>{
   <div class="maps"><a class="naver" href="${naverUrl(p.n)}" target="_blank" rel="noopener">네이버 지도</a>
   <a class="kakao" href="${kakaoUrl(p)}" target="_blank" rel="noopener">카카오 지도</a>
   <a href="${googleUrl(p)}" target="_blank" rel="noopener">구글 지도</a></div>
-  <a class="cta" href="${SITE}/?q=${encodeURIComponent(nm)}">이 장소 한줄평 보기 · 비슷한 곳 더 찾기 →</a>
+  <a class="cta" href="${SITE}/">← 첫 화면으로 돌아가기</a>
   ${rel.length?`<div class="sec-t">이런 목록에도 있어요</div><div class="links">${rel.map(c=>`<a href="${SITE}/list/${c.slug}/">${esc(c.title)}</a>`).join("")}</div>`:""}`;
   write(`place/${p.slug}/index.html`, page({title,desc,canonical,jsonld,body}));
   urls.push({loc:canonical,pri:"0.7"});
