@@ -119,6 +119,11 @@ let INFO_AUTO={}; try{ INFO_AUTO=JSON.parse(fs.readFileSync("info_auto.js","utf8
 const used={};
 ALL.forEach(p=>{ let s=slugify(shortName(p.n)); if(used[s]){ used[s]++; s=s+"-"+used[s]; } else used[s]=1; p.slug=s; });
 
+function tidyDesc(d){
+  if(!d) return "";
+  let s=String(d).replace(/[\s·,]*(?:…|\.\.\.)\s*$/,"").trim();
+  return s.replace(/[\s·,]+$/,"").trim();
+}
 const REGIONS=["수도권","강원","충청","경상","전라","제주"];
 // 도시(시·군) 추출 — 앱의 cityOf와 동일 로직
 const METRO=["서울","부산","대구","인천","광주","대전","울산","세종"];
@@ -126,7 +131,8 @@ function cityOf(p){
   const t=(p.l||"").trim().split(/\s+/);
   if(METRO.includes(t[0])) return t[0];
   let c=t[1]||t[0]||"";
-  return c.replace(/(특별자치시|특별자치도|특별시|광역시|시|군|구)$/,"");
+  const s=c.replace(/(특별자치시|특별자치도|특별시|광역시|시|군|구)$/,"");
+  return s.length>=2?s:c;
 }
 const urls=[]; // sitemap
 
@@ -172,14 +178,14 @@ const liveCombos=COMBOS.filter(c=>c.list.length>=(c.city?3:4));
 function cardHtml(p){
   return `<a class="card" href="${SITE}/place/${p.slug}/"><div class="e">${p.e||"📍"}</div>
   <div class="n">${esc(shortName(p.n))}</div><div class="l">📍 ${esc(p.l)}</div>
-  <div class="d">${esc(p.d||"")}</div></a>`;
+  <div class="d">${esc(tidyDesc(p.d))}</div></a>`;
 }
 
 // ----- 장소 페이지 -----
 ALL.forEach(p=>{
   const nm=shortName(p.n);
   const title=`${nm} — ${p.l} 아이랑 가볼만한 곳 | APPAWTG`;
-  const desc=`${p.l} ${nm}. ${(p.d||"").slice(0,90)} 지역·날씨·나이·예산으로 고르는 가족 나들이.`;
+  const desc=`${p.l} ${nm}. ${tidyDesc(p.d).slice(0,90)} 지역·날씨·나이·예산으로 고르는 가족 나들이.`;
   const canonical=`${SITE}/place/${p.slug}/`;
   const jsonld={"@context":"https://schema.org","@type":"TouristAttraction",name:nm,description:p.d||"",
     address:{"@type":"PostalAddress",addressRegion:p.l,addressCountry:"KR"},
@@ -190,7 +196,7 @@ ALL.forEach(p=>{
   <div class="crumb"><a href="${SITE}/">홈</a> › ${esc(p.r)} › ${esc(nm)}</div></header>
   <h1>${p.e||"📍"} ${esc(nm)}</h1><div class="loc">📍 ${esc(p.l)}</div>
   <div class="badges">${costBadge(p.c)}${placeBadge(p.p)}${p.a.map(a=>`<span class="badge">${a==='유아'?'👶 유아':'🧒 초등'}</span>`).join("")}</div>
-  <p class="desc">${esc(p.d||"")}</p>
+  <p class="desc">${esc(tidyDesc(p.d))}</p>
   <div class="tags">${(p.t||[]).map(t=>`<span class="tag">#${esc(t)}</span>`).join("")}</div>
   ${(()=>{const info=Object.assign({},INFO_AUTO[p.n]||{},p.info||{});const r=[["🕘","운영시간",info.운영시간],["💵","요금",info.요금],["🅿️","주차",info.주차],["🚼","유아차",info.유아차],["🍼","수유실",info.수유실],["🚻","화장실",info.화장실],["👶","기저귀교환대",info.기저귀교환대]].filter(x=>x[2]);return r.length?`<div class="sec-t">아빠 시점 정보</div><div class="pinfo">${r.map(x=>`<div><span>${x[0]} ${x[1]}</span><b>${esc(x[2])}</b></div>`).join("")}</div>`:"";})()}
   <div class="maps"><a class="naver" href="${naverUrl(p.n)}" target="_blank" rel="noopener">네이버 지도</a>
