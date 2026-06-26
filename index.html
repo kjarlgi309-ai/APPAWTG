@@ -408,6 +408,11 @@ function useMyLocation(){
 }
 
 function shortName(name){return name.split("+")[0].trim();}
+function tidyDesc(d){
+  if(!d) return "";
+  let s=String(d).replace(/[\s·,]*(?:…|\.\.\.)\s*$/,"").trim();
+  return s.replace(/[\s·,]+$/,"").trim();
+}
 function mapUrl(name){return "https://map.naver.com/p/search/"+encodeURIComponent(shortName(name));}
 // 좌표(x:경도, y:위도) 있으면 길안내 직링크, 없으면 검색 링크
 function kakaoUrl(p){
@@ -427,7 +432,8 @@ function cityOf(p){
   const t=(p.l||"").trim().split(/\s+/);
   if(METRO.includes(t[0]))return t[0];
   let c=t[1]||t[0]||"";
-  return c.replace(/(특별자치시|특별자치도|시|군|구)$/,"");
+  const s=c.replace(/(특별자치시|특별자치도|특별시|광역시|시|군|구)$/,"");
+  return s.length>=2?s:c;
 }
 function buildCityChips(region){
   const row=document.getElementById("cityRow");
@@ -476,7 +482,7 @@ function render(){
       <div class="emoji">${x.e}</div>
       <h3 class="rv-open" data-n="${x.n}">${x.n} <span class="rv-sign">💬 한줄평</span></h3>
       <div class="loc">📍 ${x.l}${state.near&&LAST_DIST[x.n]!==undefined?` · <b>${LAST_DIST[x.n].toFixed(1)}km</b>`:""}</div>
-      <p>${x.d}</p>
+      <p>${tidyDesc(x.d)}</p>
       <div class="tags">
         <span class="tag ${x.c==='무료'?'free':''}">${x.c==='무료'?'💸 무료':x.c==='가성비'?'💰 1만원↓':'💳 플렉스'}</span>
         <span class="tag">${x.p==='실내'?'☔ 실내':x.p==='실외'?'☀️ 실외':'⛅ 실내+실외'}</span>
@@ -534,7 +540,7 @@ function randomPick(){
   document.getElementById("mEmoji").textContent=x.e;
   document.getElementById("mName").textContent=x.n;
   document.getElementById("mLoc").textContent="📍 "+x.l;
-  document.getElementById("mDesc").textContent=x.d;
+  document.getElementById("mDesc").textContent=tidyDesc(x.d);
   document.getElementById("mMap").href=mapUrl(x.n);
   document.getElementById("modalBg").classList.add("show");
 }
@@ -1010,7 +1016,7 @@ loadWeather();
     elDetail.innerHTML = `
       <div class="rv-d-loc">📍 ${esc(p.l)}</div>
       <div class="rv-badges">${badges}</div>
-      <div class="rv-d-desc">${esc(p.d||"")}</div>
+      <div class="rv-d-desc">${esc(tidyDesc(p.d))}</div>
       ${rows?`<div class="rv-infos">${rows}</div>`:`<div class="rv-info-empty">🅿️ 주차·🚼 유아차·🍼 수유실 정보는 준비 중이에요</div>`}
       ${slug?`<a class="rv-more" href="/place/${slug}/">상세 페이지 →</a>`:""}`;
   }
