@@ -120,6 +120,14 @@ const used={};
 ALL.forEach(p=>{ let s=slugify(shortName(p.n)); if(used[s]){ used[s]++; s=s+"-"+used[s]; } else used[s]=1; p.slug=s; });
 
 const REGIONS=["수도권","강원","충청","경상","전라","제주"];
+// 도시(시·군) 추출 — 앱의 cityOf와 동일 로직
+const METRO=["서울","부산","대구","인천","광주","대전","울산","세종"];
+function cityOf(p){
+  const t=(p.l||"").trim().split(/\s+/);
+  if(METRO.includes(t[0])) return t[0];
+  let c=t[1]||t[0]||"";
+  return c.replace(/(특별자치시|특별자치도|특별시|광역시|시|군|구)$/,"");
+}
 const urls=[]; // sitemap
 
 function write(rel,html){ const fp=path.join(OUT,rel); fs.mkdirSync(path.dirname(fp),{recursive:true}); fs.writeFileSync(fp,html); }
@@ -135,13 +143,31 @@ for(const r of REGIONS){
   COMBOS.push({key:`${r}-무료`, slug:slugify(r)+"-muryo", test:p=>p.r===r&&p.c==="무료", title:`${r} 무료 나들이`, h:`${r} 무료 나들이`});
 }
 
+// 도시 단위 목록 (예: 춘천 / 부산) — "춘천 아이랑 갈만한 곳" 류 검색 대응
+{
+  const usedSlug=new Set(COMBOS.map(c=>c.slug));
+  const cityMap={}; // "region|city" -> count
+  ALL.forEach(p=>{ const c=cityOf(p); if(!c) return; const k=p.r+"|"+c; cityMap[k]=(cityMap[k]||0)+1; });
+  Object.keys(cityMap).forEach(k=>{
+    if(cityMap[k]<3) return; // 빈약한 페이지 방지: 3곳 이상만
+    const [r,c]=k.split("|");
+    let sl="c-"+slugify(c);
+    if(usedSlug.has(sl)) sl=sl+"-"+slugify(r);
+    usedSlug.add(sl);
+    COMBOS.push({key:`${r}-도시-${c}`, slug:sl, city:true,
+      test:p=>p.r===r&&cityOf(p)===c,
+      title:`${c} 아이랑 가볼만한 곳`, h:`${c} 아이랑 가볼만한 곳`});
+  });
+}
+
 // place -> 관련 combo (내부링크)
 function relatedCombos(p){
-  return COMBOS.filter(c=>c.list && c.list.length>=4 && c.test(p)).slice(0,5);
+  return COMBOS.filter(c=>c.list && c.list.length>=(c.city?3:4) && c.test(p))
+    .sort((a,b)=>(b.city?1:0)-(a.city?1:0)).slice(0,5);
 }
 // 먼저 combo별 list 계산
 COMBOS.forEach(c=>{ c.list=ALL.filter(c.test); });
-const liveCombos=COMBOS.filter(c=>c.list.length>=4);
+const liveCombos=COMBOS.filter(c=>c.list.length>=(c.city?3:4));
 
 function cardHtml(p){
   return `<a class="card" href="${SITE}/place/${p.slug}/"><div class="e">${p.e||"📍"}</div>
@@ -198,7 +224,7 @@ liveCombos.forEach(c=>{
   const body=`<header><a class="logo" href="${SITE}/">🚗 아빠, 이번 주말 어디가?</a>
   <div class="crumb"><a href="${SITE}/">홈</a> › 목록</div></header>
   <h1>지역·조건별 나들이 목록</h1>
-  ${REGIONS.map(r=>{const cs=liveCombos.filter(c=>c.key.startsWith(r)); return `<div class="sec-t">${r}</div><div class="links">${cs.map(c=>`<a href="${SITE}/list/${c.slug}/">${esc(c.title)} (${c.list.length})</a>`).join("")}</div>`;}).join("")}`;
+  ${REGIONS.map(r=>{const cs=liveCombos.filter(c=>c.key.startsWith(r)&&!c.city); const cities=liveCombos.filter(c=>c.key.startsWith(r)&&c.city); return `<div class="sec-t">${r}</div><div class="links">${cs.map(c=>`<a href="${SITE}/list/${c.slug}/">${esc(c.title)} (${c.list.length})</a>`).join("")}</div>`+(cities.length?`<div class="links" style="margin-top:6px">${cities.map(c=>`<a href="${SITE}/list/${c.slug}/">🏙️ ${esc(c.title)} (${c.list.length})</a>`).join("")}</div>`:"");}).join("")}`;
   write(`list/index.html`, page({title:`지역·조건별 나들이 목록 | APPAWTG`,desc:`수도권·강원·충청·경상·전라·제주 지역별, 실내/실외·나이·예산 조건별 아이랑 가볼만한 곳 목록.`,canonical:`${SITE}/list/`,jsonld:null,body}));
   urls.push({loc:`${SITE}/list/`,pri:"0.8"});
 }
