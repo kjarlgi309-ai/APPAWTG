@@ -41,6 +41,10 @@
     background:linear-gradient(135deg,#ff6b35,#ff8f5e);color:#fff;font-size:17px;font-weight:800;cursor:pointer;
     box-shadow:0 6px 18px rgba(255,107,53,.3);transition:transform .15s}
   .random-btn:active{transform:scale(.97)}
+  .nearme-btn{display:block;width:100%;margin:0 0 4px;padding:13px;border:1.5px solid var(--accent);
+    border-radius:14px;background:#fff;color:var(--accent);font-size:15px;font-weight:800;cursor:pointer;font-family:inherit}
+  .nearme-btn:active{transform:scale(.98)}
+  .nearme-btn:disabled{opacity:.55;cursor:default}
 
   .filters{position:sticky;top:0;background:var(--bg);padding:12px 0;z-index:10;border-bottom:1px solid var(--line)}
   .frow{display:flex;gap:6px;overflow-x:auto;padding:3px 0;scrollbar-width:none}
@@ -147,6 +151,7 @@
     <h1>아빠, <em>이번 주말</em> 어디가?</h1>
     <p class="tagline">고민은 3초면 충분해요. 조건만 고르세요.</p>
     <button class="random-btn" onclick="randomPick()">🎲 고민 끝! 랜덤으로 정해줘</button>
+    <button class="nearme-btn" id="nearMeBtn" onclick="useMyLocation()">📍 내 주변 장소 보기</button>
     <div class="weather" id="weather" style="display:none">
       <div class="w-title"><span id="wTitle">📅 다가오는 주말 날씨</span> · <span id="wCity"></span></div>
       <div class="w-days" id="wDays"></div>
@@ -165,6 +170,7 @@
       <button class="chip" data-v="전라">전라</button>
       <button class="chip" data-v="제주">제주</button>
     </div>
+    <div class="frow" data-key="city" id="cityRow" style="display:none"></div>
     <div class="frow" data-key="place">
       <span class="flabel">장소</span>
       <button class="chip on" data-v="all">전체</button>
@@ -347,7 +353,7 @@ window.APP={getPlace:(n)=>PLACES.find(p=>p.n===n)};
 if(typeof BASE_COORDS!=="undefined")PLACES.forEach(p=>{const c=BASE_COORDS[p.n];if(c){p.x=c[0];p.y=c[1];}});
 
 // ===== 상태 & 렌더 =====
-const state={region:"all",place:"all",age:"all",cost:"all",q:"",favOnly:false,near:null};
+const state={region:"all",city:"all",place:"all",age:"all",cost:"all",q:"",favOnly:false,near:null};
 const grid=document.getElementById("grid"), count=document.getElementById("count"), empty=document.getElementById("empty");
 
 // ===== 찜하기 (브라우저에 저장) =====
@@ -384,6 +390,22 @@ function showNear(n){
   document.getElementById("nearBanner").scrollIntoView({behavior:"smooth",block:"center"});
 }
 function clearNear(){state.near=null;render();}
+function useMyLocation(){
+  const btn=document.getElementById("nearMeBtn");
+  if(!("geolocation" in navigator)){alert("이 브라우저는 위치 기능을 지원하지 않아요.");return;}
+  if(btn){btn.disabled=true;btn.textContent="📍 위치 찾는 중…";}
+  navigator.geolocation.getCurrentPosition(function(pos){
+    if(btn){btn.disabled=false;btn.textContent="📍 내 주변 장소 보기";}
+    state.near={n:"내 위치",x:pos.coords.longitude,y:pos.coords.latitude};
+    if(typeof gtag==="function")gtag('event','near_me');
+    render();
+    const nb=document.getElementById("nearBanner");
+    if(nb)nb.scrollIntoView({behavior:"smooth",block:"center"});
+  },function(err){
+    if(btn){btn.disabled=false;btn.textContent="📍 내 주변 장소 보기";}
+    alert("위치를 가져오지 못했어요. 브라우저의 위치 권한을 허용했는지 확인해 주세요.");
+  },{enableHighAccuracy:true,timeout:10000,maximumAge:300000});
+}
 
 function shortName(name){return name.split("+")[0].trim();}
 function mapUrl(name){return "https://map.naver.com/p/search/"+encodeURIComponent(shortName(name));}
@@ -400,6 +422,23 @@ function foodUrl(p){
 }
 
 let LAST_DIST={};
+const METRO=["서울","부산","대구","인천","광주","대전","울산","세종"];
+function cityOf(p){
+  const t=(p.l||"").trim().split(/\s+/);
+  if(METRO.includes(t[0]))return t[0];
+  let c=t[1]||t[0]||"";
+  return c.replace(/(특별자치시|특별자치도|시|군|구)$/,"");
+}
+function buildCityChips(region){
+  const row=document.getElementById("cityRow");
+  if(!region||region==="all"){row.style.display="none";row.innerHTML="";return;}
+  const counts={};
+  PLACES.forEach(p=>{ if(p.r===region){ const c=cityOf(p); if(c) counts[c]=(counts[c]||0)+1; }});
+  const cities=Object.keys(counts).sort((a,b)=>counts[b]-counts[a]||a.localeCompare(b,"ko"));
+  row.innerHTML='<span class="flabel">도시</span><button class="chip on" data-v="all">전체</button>'+
+    cities.map(c=>`<button class="chip" data-v="${c}">${c} ${counts[c]}</button>`).join("");
+  row.style.display="flex";
+}
 function filtered(){
   if(state.near){ // 근처 모드: 다른 필터 무시, 거리순 정렬
     LAST_DIST={};
@@ -410,6 +449,7 @@ function filtered(){
   return PLACES.filter(x=>{
     if(state.favOnly&&!isFav(x.n))return false;
     if(state.region!=="all"&&x.r!==state.region)return false;
+    if(state.city&&state.city!=="all"&&cityOf(x)!==state.city)return false;
     if(state.place!=="all"&&x.p!==state.place&&x.p!=="혼합")return false;
     if(state.age!=="all"&&!x.a.includes(state.age))return false;
     if(state.cost!=="all"&&x.c!==state.cost)return false;
@@ -467,6 +507,7 @@ document.querySelectorAll(".frow").forEach(row=>{
     row.querySelectorAll(".chip").forEach(c=>c.classList.remove("on"));
     chip.classList.add("on");
     state[row.dataset.key]=chip.dataset.v;
+    if(row.dataset.key==="region"){state.city="all";buildCityChips(chip.dataset.v);}
     render();
     if(row.dataset.key==="region")loadWeather();
   });
